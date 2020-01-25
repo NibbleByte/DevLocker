@@ -8,13 +8,13 @@ namespace DevLocker.Tools
 	/// <summary>
 	/// Adds "P", "R", "S" buttons that reset respectfully position, rotation, scale in the Transform component.
 	/// Also adds world position.
-	/// 
+	///
 	/// NOTE: DecoratorEditor is a custom class that uses reflection to do black magic!
 	/// </summary>
 	[CanEditMultipleObjects, CustomEditor(typeof(Transform))]
 	public class TransformResetEditor : DecoratorEditor
 	{
-		private const float RESET_BUTTON_WIDTH = 18.0f;
+		private const float RESET_BUTTON_WIDTH = 19.0f;
 
 		private SerializedProperty positionProperty;
 		private SerializedProperty rotationProperty;
