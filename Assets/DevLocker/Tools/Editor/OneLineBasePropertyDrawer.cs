@@ -67,6 +67,18 @@ namespace DevLocker.Tools
 				if (label.text.StartsWith("Element")) {
 					EditorGUIUtility.labelWidth = 40.0f;
 					label.text = label.text.Replace("Element", "El.");
+
+				} else if (property.propertyPath.LastOrDefault() == ']') {  // Array element: YourType.Array.data[0]
+
+					// If your class / struct starts with a string field,
+					// Unity takes the string value as label instead of "Element XX".
+					// It's a nice feature, but doesn't look good in our situation.
+					EditorGUIUtility.labelWidth = 40.0f;
+					var leftBracketIndex = property.propertyPath.LastIndexOf('[');
+					if (leftBracketIndex != -1) {
+						var elementIndex = property.propertyPath.Substring(leftBracketIndex + 1, property.propertyPath.Length - leftBracketIndex - 2);
+						label.text = $"El. {elementIndex}";
+					}
 				}
 			}
 
