@@ -1,5 +1,6 @@
 using DevLocker.Utils;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace DevLocker.Animations
@@ -24,7 +25,10 @@ namespace DevLocker.Animations
 				return;
 			}
 
-			var destination = !string.IsNullOrWhiteSpace(ev.stringParameter) ? transform.FindTransformInChildren(ev.stringParameter) : transform;
+			var destination = !string.IsNullOrWhiteSpace(ev.stringParameter)
+				? transform.FindTransform(ev.stringParameter, System.StringComparison.Ordinal).FirstOrDefault()
+				: transform;
+
 			if (destination == null) {
 				Debug.LogError($"Destination \"{ev.stringParameter}\" not found! Prefab \"{prefab.name}\" not instantiated. Time: {ev.time}", this);
 				return;

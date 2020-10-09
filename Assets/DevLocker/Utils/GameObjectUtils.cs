@@ -11,110 +11,79 @@ namespace DevLocker.Utils
 	/// </summary>
 	public static class GameObjectUtils
 	{
-		public static IEnumerable<T> GetComponents<T>(this Scene scene, bool inChildren)
-		{
-			Func<GameObject, IEnumerable<T>> getCmp;
-			if (inChildren)
-				getCmp = go => go.GetComponentsInChildren<T>();
-			else
-				getCmp = go => go.GetComponents<T>();
-			return scene.GetRootGameObjects().SelectMany(getCmp);
-		}
-
-		public static T GetComponent<T>(this Scene scene, bool inChildren)
-		{
-			return scene.GetComponents<T>(inChildren).FirstOrDefault();
-		}
-
-		public static Transform FindObject(this Scene scene, string objName)
-		{
-			foreach (var obj in scene.GetRootGameObjects()) {
-				Transform found = obj.transform.FindTransformInChildren(objName);
-				if (found != null)
-					return found;
-			}
-			return null;
-		}
-
-
-		public static IEnumerable<Transform> GetChildren(this Transform transform)
+		/// <summary>
+		/// Enumerate children.
+		/// Breaking enumerator early will prevent further calculations.
+		/// </summary>
+		public static IEnumerable<Transform> EnumerateChildren(this Transform transform)
 		{
 			for (int i = 0; i < transform.childCount; ++i)
 				yield return transform.GetChild(i);
 		}
 
-		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this GameObject go)
+		/// <summary>
+		/// Enumerate all specified components of the game objects of the loaded scene.
+		/// Breaking enumerator early will prevent further calculations.
+		/// Special case for Transform type.
+		/// </summary>
+		public static IEnumerable<T> EnumerateComponents<T>(this Scene scene, bool includeInactive) where T : Component
 		{
-			return EnumerateComponentsInChildren<T>(go.transform);
-		}
-		
-		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this Transform transform)
-		{
-			var components = transform.GetComponents<T>();
-			var childComponents = GetChildren(transform).SelectMany(EnumerateComponentsInChildren<T>);
-			return components.Concat(childComponents);
-		}
-		
-		public static IEnumerable<Transform> EnumerateTransformsInChildren(this GameObject go)
-		{
-			return EnumerateTransformsInChildren(go.transform);
-		}
-		
-		public static IEnumerable<Transform> EnumerateTransformsInChildren(this Transform transform)
-		{
-			var childTransforms = GetChildren(transform).SelectMany(EnumerateTransformsInChildren);
-			return Enumerable.Repeat(transform, 1).Concat(childTransforms);
-		}
-
-		// Can use object name or path.
-		public static Transform FindTransformInChildren(this Transform parent, string pointName)
-		{
-			return FindTransformInChildren(parent, pointName, includeParent: false);
-		}
-
-		public static Transform FindTransformInChildren(this Transform parent, string pointName, bool includeParent)
-		{
-			if (string.IsNullOrEmpty(pointName))
-				return null;
-			return FindTransformInChildrenInternal(parent, pointName, includeParent);
-		}
-
-		private static Transform FindTransformInChildrenInternal(this Transform parent, string pointName, bool includeParent)
-		{
-			if (includeParent && parent.name == pointName) {
-				return parent;
+			foreach(var go in scene.GetRootGameObjects()) {
+				foreach(var component in go.EnumerateComponentsInChildren<T>(includeInactive)) {
+					yield return component;
+				}
 			}
-
-			Transform transform = parent.Find(pointName);
-
-			if (transform != null)
-				return transform;
-
-			for (int i = 0, n = parent.childCount; i < n; ++i) {
-				transform = parent.GetChild(i).FindTransformInChildren(pointName);
-
-				if (transform != null)
-					return transform;
-			}
-
-			return null;
 		}
 
-		public static Transform FindTransformInChildren(this Transform parent, Predicate<Transform> predicate)
+		/// <summary>
+		/// Enumerate all specified components of the game object itself and it's children recursively.
+		/// Breaking enumerator early will prevent further calculations.
+		/// Special case for Transform type.
+		/// </summary>
+		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this GameObject go, bool includeInactive) where T : Component
 		{
-			if (predicate(parent))
-				return parent;
-
-			for (int i = 0, n = parent.childCount; i < n; ++i) {
-				var transform = FindTransformInChildren(parent.GetChild(i), predicate);
-
-				if (transform != null)
-					return transform;
-			}
-
-			return null;
+			return EnumerateComponentsInChildren<T>(go.transform, includeInactive);
 		}
 
+		/// <summary>
+		/// Enumerate all specified components of the transform itself and it's children recursively.
+		/// Breaking enumerator early will prevent further calculations.
+		/// Special case for Transform type.
+		/// </summary>
+		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this Transform transform, bool includeInactive) where T : Component
+		{
+			Queue<Transform> queue = new Queue<Transform>();
+			queue.Enqueue(transform);
+			List<T> components = new List<T>();
+
+			bool typeIsTransform = typeof(T) == typeof(Transform);
+
+			while (queue.Count > 0) {
+				var nextTransform = queue.Dequeue();
+
+				if (typeIsTransform) {
+					yield return nextTransform as T;
+
+				} else {
+					nextTransform.GetComponents(components);
+
+					foreach (var component in components) {
+						yield return component;
+					}
+				}
+
+				foreach(var child in EnumerateChildren(nextTransform)) {
+					if (!includeInactive && child.gameObject.activeSelf == false)
+						continue;
+
+					queue.Enqueue(child);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reset local position, rotation and scale.
+		/// </summary>
 		public static Transform ResetTransform(this Transform transform)
 		{
 			transform.localPosition = Vector3.zero;
@@ -124,6 +93,9 @@ namespace DevLocker.Utils
 			return transform;
 		}
 
+		/// <summary>
+		/// Copy local position, rotation and scale from another transform.
+		/// </summary>
 		public static Transform CopyFrom(this Transform transform, Transform other)
 		{
 			transform.localPosition = other.localPosition;
@@ -132,6 +104,20 @@ namespace DevLocker.Utils
 			return transform;
 		}
 
+		/// <summary>
+		/// Copy local position, rotation and scale to another transform.
+		/// </summary>
+		public static Transform CopyTo(this Transform transform, Transform other)
+		{
+			other.localPosition = transform.localPosition;
+			other.localRotation = transform.localRotation;
+			other.localScale = transform.localScale;
+			return transform;
+		}
+
+		/// <summary>
+		/// Copy global position, rotation from another transform.
+		/// </summary>
 		public static Transform CopyGlobalFrom(this Transform transform, Transform other)
 		{
 			transform.position = other.position;
@@ -139,6 +125,20 @@ namespace DevLocker.Utils
 			return transform;
 		}
 
+		/// <summary>
+		/// Copy global position, rotation to another transform.
+		/// </summary>
+		public static Transform CopyGlobalTo(this Transform transform, Transform other)
+		{
+			other.position = transform.position;
+			other.rotation = transform.rotation;
+			return transform;
+		}
+
+		/// <summary>
+		/// Generate path suitable for use with Transform.Find() between root and node.
+		/// Root can be null.
+		/// </summary>
 		public static string GetFindPath(Transform root, Transform node)
 		{
 			string findPath = string.Empty;
@@ -154,8 +154,22 @@ namespace DevLocker.Utils
 			return findPath;
 		}
 
-		// Finds best possible transform according to the path, even if not fully satisfied.
-		public static Transform FindBestMatch(Transform root, string path, bool includeParent = true)
+		/// <summary>
+		/// Find transform by name with specified StringComparison method.
+		/// Breaking enumerator early will prevent further calculations.
+		/// </summary>
+		public static IEnumerable<Transform> FindTransform(this Transform transform, string name, StringComparison comparison, bool includeInactive = false)
+		{
+			foreach (var t in transform.EnumerateComponentsInChildren<Transform>(includeInactive)) {
+				if (t.name.Equals(name, comparison))
+					yield return t;
+			}
+		}
+
+		/// <summary>
+		/// Finds best possible transform according to the path, even if not fully satisfied.
+		/// </summary>
+		public static Transform FindBestMatch(this Transform root, string path, bool includeParent = true)
 		{
 			Transform result = root;
 
@@ -190,20 +204,10 @@ namespace DevLocker.Utils
 			return result;
 		}
 
-		// TODO: is obsolete by transform.IsChildOf()? Or maybe IsChildOf doesn't work with inactive objects? If so, change to transform.IsChildOf(true)
-		public static bool IsUnder(Transform root, Transform node)
-		{
-			while (node != null) {
-
-				if (node == root)
-					return true;
-
-				node = node.parent;
-			}
-
-			return false;
-		}
-
+		/// <summary>
+		/// Destroy all children and detach them immediately.
+		/// This way they won't be iterated by further requests in this frame.
+		/// </summary>
 		public static void DestroyChildren(this Transform transform, bool immediate = false)
 		{
 			for (int i = transform.childCount - 1; i >= 0; --i) {
@@ -215,8 +219,11 @@ namespace DevLocker.Utils
 			}
 			transform.DetachChildren();
 		}
-		
-		// Because Unity API misses this function. Lame.
+
+
+		/// <summary>
+		/// Because Unity API misses this function. Lame.
+		/// </summary>
 		public static T GetComponentInParent<T>(this Component component, bool includeInactive)
 		{
 			if (!includeInactive) {
@@ -236,7 +243,9 @@ namespace DevLocker.Utils
 			return default(T);
 		}
 
-		// Because Unity API misses this function. Lame.
+		/// <summary>
+		/// Because Unity API misses this function. Lame.
+		/// </summary>
 		public static T GetComponentInParent<T>(this GameObject gameObject, bool includeInactive)
 		{
 			return GetComponentInParent<T>(gameObject.transform, includeInactive);

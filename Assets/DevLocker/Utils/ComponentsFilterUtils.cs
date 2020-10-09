@@ -11,15 +11,19 @@ namespace DevLocker.Utils
 	/// </summary>
 	public static class ComponentsFilterUtils
 	{
-		// Removes all components but the ones provided. Tries to take care of dependencies.
-		// WARNING: keepComponents should include dependent components as well (RequreComponent attributes).
+		/// <summary>
+		/// Removes all components but the ones provided. Tries to take care of dependencies.
+		/// WARNING: keepComponents should include dependent components as well (RequreComponent attributes).
+		/// </summary>
 		public static GameObject FilterInComponents(this GameObject go, params Type[] keepComponents)
 		{
 			return FilterInComponents(go, true, keepComponents);
 		}
 
-		// Removes all components but the ones provided. Tries to take care of dependencies.
-		// WARNING: keepComponents should include dependent components as well (RequreComponent attributes).
+		/// <summary>
+		/// Removes all components but the ones provided. Tries to take care of dependencies.
+		/// WARNING: keepComponents should include dependent components as well (RequreComponent attributes).
+		/// </summary>
 		public static GameObject FilterInComponents(this GameObject go, bool recursive, params Type[] keepComponents)
 		{
 			var components = go.GetComponents<Component>();
@@ -65,16 +69,19 @@ namespace DevLocker.Utils
 		}
 
 
-
-		// Removes all components that are of the provided type. Tries to take care of dependencies.
-		// WARNING: removeComponents should include dependent components as well (RequreComponent attributes).
+		/// <summary>
+		/// Removes all components that are of the provided type. Tries to take care of dependencies.
+		/// WARNING: removeComponents should include dependent components as well (RequreComponent attributes).
+		/// </summary>
 		public static GameObject FilterOutComponents(this GameObject go, params Type[] removeComponents)
 		{
 			return FilterOutComponents(go, true, removeComponents);
 		}
 
-		// Removes all components that are of the provided type. Tries to take care of dependencies.
-		// WARNING: removeComponents should include dependent components as well (RequreComponent attributes).
+		/// <summary>
+		/// Removes all components that are of the provided type. Tries to take care of dependencies.
+		/// WARNING: removeComponents should include dependent components as well (RequreComponent attributes).
+		/// </summary>
 		public static GameObject FilterOutComponents(this GameObject go, bool recursive, params Type[] removeComponents)
 		{
 			var components = go.GetComponents<Component>();
@@ -137,14 +144,14 @@ namespace DevLocker.Utils
 				if (otherComp is Transform)
 					continue;
 
-				
+
 				var otherType = otherComp.GetType();
 				bool isRequired;
 				if (!_requireBindsDatabase.TryGetValue(new KeyValuePair<Type, Type>(otherType, type), out isRequired)) {
-					
+
 					var query = otherType.GetCustomAttributes(typeof(RequireComponent)).Select(attr => (RequireComponent) attr);
 					isRequired = false;
-					
+
 					foreach (var requirement in query) {
 						var t0 = requirement.m_Type0;
 						var t1 = requirement.m_Type1;
@@ -163,7 +170,7 @@ namespace DevLocker.Utils
 							break;
 						}
 					}
-					
+
 					_requireBindsDatabase.Add(new KeyValuePair<Type, Type>(otherType, type), isRequired);
 				}
 
