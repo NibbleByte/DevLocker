@@ -6,6 +6,18 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/DevLocker/StatesManagement/SampleTanks/Scenes/0.BootScene.unity
+    guid: 738c28d5ace59ed4f8d6dc14f1cd98ce
+  - enabled: 1
+    path: Assets/DevLocker/StatesManagement/SampleTanks/Scenes/1.MainMenuScene.unity
+    guid: 21cdffcb277e2d14183d98b67f25b327
+  - enabled: 1
+    path: Assets/DevLocker/StatesManagement/SampleTanks/Scenes/2.GarageScene.unity
+    guid: 1c62ce0b93f1d4f4b928253e1740e89a
+  - enabled: 1
+    path: Assets/DevLocker/StatesManagement/SampleTanks/Scenes/3.BattleScene.unity
+    guid: 0e0ac7487b8f78f4a916bc9b045410c3
+  - enabled: 1
+    path: Assets/DevLocker/StatesManagement/SampleTanks/Scenes/OptionsScene.unity
+    guid: 34342c7ca0a166346adad8cb84b71c71
   m_configObjects: {}
