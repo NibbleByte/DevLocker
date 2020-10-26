@@ -26,7 +26,7 @@ namespace DevLocker.Utils
 		/// Breaking enumerator early will prevent further calculations.
 		/// Special case for Transform type.
 		/// </summary>
-		public static IEnumerable<T> EnumerateComponents<T>(this Scene scene, bool includeInactive) where T : Component
+		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this Scene scene, bool includeInactive)
 		{
 			foreach(var go in scene.GetRootGameObjects()) {
 				foreach(var component in go.EnumerateComponentsInChildren<T>(includeInactive)) {
@@ -40,7 +40,7 @@ namespace DevLocker.Utils
 		/// Breaking enumerator early will prevent further calculations.
 		/// Special case for Transform type.
 		/// </summary>
-		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this GameObject go, bool includeInactive) where T : Component
+		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this GameObject go, bool includeInactive)
 		{
 			return EnumerateComponentsInChildren<T>(go.transform, includeInactive);
 		}
@@ -50,7 +50,7 @@ namespace DevLocker.Utils
 		/// Breaking enumerator early will prevent further calculations.
 		/// Special case for Transform type.
 		/// </summary>
-		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this Transform transform, bool includeInactive) where T : Component
+		public static IEnumerable<T> EnumerateComponentsInChildren<T>(this Transform transform, bool includeInactive)
 		{
 			Queue<Transform> queue = new Queue<Transform>();
 			queue.Enqueue(transform);
@@ -62,7 +62,7 @@ namespace DevLocker.Utils
 				var nextTransform = queue.Dequeue();
 
 				if (typeIsTransform) {
-					yield return nextTransform as T;
+					yield return (T)(object)nextTransform;
 
 				} else {
 					nextTransform.GetComponents(components);
