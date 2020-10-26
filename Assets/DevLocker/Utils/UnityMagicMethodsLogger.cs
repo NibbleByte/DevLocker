@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UnityMagicMethodsLogger : MonoBehaviour, IActivatedByForce
+public class UnityMagicMethodsLogger : MonoBehaviour
 {
 	private void Awake()
 	{
