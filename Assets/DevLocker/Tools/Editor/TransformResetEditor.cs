@@ -14,7 +14,10 @@ namespace DevLocker.Tools
 	[CanEditMultipleObjects, CustomEditor(typeof(Transform))]
 	public class TransformResetEditor : DecoratorEditor
 	{
-		private const float RESET_BUTTON_WIDTH = 19.0f;
+		private const float RESET_BUTTON_WIDTH = 22.0f;
+
+		private static GUIContent buttonIconContent;
+		private static GUIStyle buttonIconStyle;
 
 		private SerializedProperty positionProperty;
 		private SerializedProperty rotationProperty;
@@ -33,6 +36,12 @@ namespace DevLocker.Tools
 
 		public override void OnInspectorGUI()
 		{
+			if (buttonIconContent == null) {
+				buttonIconContent = EditorGUIUtility.IconContent("Refresh");
+				buttonIconStyle = new GUIStyle(GUI.skin.button);
+				buttonIconStyle.padding = new RectOffset();
+			}
+
 			serializedObject.Update();
 
 			EditorGUILayout.BeginHorizontal();
@@ -40,13 +49,16 @@ namespace DevLocker.Tools
 
 				EditorGUILayout.BeginVertical(GUILayout.Width(RESET_BUTTON_WIDTH));
 				{
-					if (GUILayout.Button("P", GUILayout.Width(RESET_BUTTON_WIDTH), GUILayout.Height(EditorGUIUtility.singleLineHeight)))
+					buttonIconContent.tooltip = "Reset position to (0, 0, 0)";
+					if (GUILayout.Button(buttonIconContent, buttonIconStyle, GUILayout.Width(RESET_BUTTON_WIDTH), GUILayout.Height(EditorGUIUtility.singleLineHeight)))
 						positionProperty.vector3Value = Vector3.zero;
 
-					if (GUILayout.Button("R", GUILayout.Width(RESET_BUTTON_WIDTH), GUILayout.Height(EditorGUIUtility.singleLineHeight)))
+					buttonIconContent.tooltip = "Reset rotation to (0, 0, 0)";
+					if (GUILayout.Button(buttonIconContent, buttonIconStyle, GUILayout.Width(RESET_BUTTON_WIDTH), GUILayout.Height(EditorGUIUtility.singleLineHeight)))
 						rotationProperty.quaternionValue = Quaternion.identity;
 
-					if (GUILayout.Button("S", GUILayout.Width(RESET_BUTTON_WIDTH), GUILayout.Height(EditorGUIUtility.singleLineHeight)))
+					buttonIconContent.tooltip = "Reset scale to (1, 1, 1)";
+					if (GUILayout.Button(buttonIconContent, buttonIconStyle, GUILayout.Width(RESET_BUTTON_WIDTH), GUILayout.Height(EditorGUIUtility.singleLineHeight)))
 						scaleProperty.vector3Value = Vector3.one;
 
 					serializedObject.ApplyModifiedProperties();
