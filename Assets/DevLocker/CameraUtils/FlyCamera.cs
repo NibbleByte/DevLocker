@@ -4,112 +4,97 @@ namespace DevLocker.CameraUtils
 {
 	/// <summary>
 	/// Allows the camera to be controlled like the Scene View camera in the Unity Editor.
-	/// This is an improved version of Christer Kaitila's FlyCamera script:
-	/// https://gist.github.com/McFunkypants/5a9dad582461cb8d9de3
 	/// </summary>
 	public class FlyCamera : MonoBehaviour
 	{
+		[Tooltip("Move speed.")]
+		public float MoveSpeed = 10.0f;
 
-		/*
-	    Writen by Windexglow 11-13-10.  Use it, edit it, steal it I don't care.  
-	    Converted to C# 27-02-13 - no credit wanted.
-	    Simple flycam I made, since I couldn't find any others made public.  
-	    Made simple to use (drag and drop, done) for regular keyboard layout  
-	    wasd : basic movement
-		qe : up / down
-		right-click-drag: rotate
-	    shift : Makes camera accelerate
-	    space : Moves camera on X and Z axis only.  So camera doesn't gain any height
-		scroll : pan / zoom.
-		*/
+		[Tooltip("Multiplied by how long shift is held.")]
+		public float RunMultiplier = 5.0f;
 
-		public float mainSpeed = 10.0f;		// Regular speed
-		public float shiftAdd = 50.0f;		// Multiplied by how long shift is held.  Basically running
-		public float maxShift = 100.0f;		// Maximum speed when holdin gshift
-		public float rotateSpeed = 0.25f;	// How sensitive it with mouse
-		public float dragSpeed = 2.0f;		// Drag with mouse scroll wheel.
-		public float scrollWheelSensitivity = 2.0f;
-		public bool rotateOnlyIfMousedown = true;
-		public bool movementStaysFlat = true;
+		[Tooltip("Rotate sensitivity (with right mouse button)")]
+		public float RotateSensitivity = 0.25f;
 
-		private Vector3 lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play)
+		[Tooltip("Pan sensitivity (with middle mouse button)")]
+		public float PanSensitivity = 2.0f;
 
-		private float totalRun = 1.0f;
+		[Tooltip("Scroll wheel movement sensitivity.")]
+		public float ScrollWheelSensitivity = 200.0f;
+
+		private Vector3 m_LastMousePos;
 
 		void Update()
 		{
-			var mousePos = Input.mousePosition;
+			Vector3 mousePos = Input.mousePosition;
 
-			if (Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2)) {
-				lastMouse = mousePos; // $CTK reset when we begin
+			if (Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2) || Input.GetMouseButtonDown(3)) {
+				m_LastMousePos = mousePos; // Reset when we begin
 			}
 
-			Vector3 mouseDiff = mousePos - lastMouse;
+			Vector3 mouseDelta = mousePos - m_LastMousePos;
 
-			if (!rotateOnlyIfMousedown ||
-			    (rotateOnlyIfMousedown && Input.GetMouseButton(1))) {
-				Vector3 rotate = mouseDiff;
-				rotate = new Vector3(-rotate.y * rotateSpeed, rotate.x * rotateSpeed, 0);
-				rotate = new Vector3(transform.eulerAngles.x + rotate.x, transform.eulerAngles.y + rotate.y, 0);
-				transform.eulerAngles = rotate;
-				// Mouse camera angle done.  
+			// Right mouse button rotate drag.
+			if (Input.GetMouseButton(1) && mouseDelta != Vector3.zero) {
+				Vector3 euler = transform.eulerAngles;
+				euler.x += -mouseDelta.y * RotateSensitivity;
+				euler.y += mouseDelta.x * RotateSensitivity;
+				transform.eulerAngles = euler;
 			}
 
-			//Keyboard commands
-			//float f = 0.0f;
-			Vector3 p = GetBaseInput();
-			if (Input.GetKey(KeyCode.LeftShift)) {
-				totalRun += Time.deltaTime;
-				p = p * totalRun * shiftAdd;
-				p.x = Mathf.Clamp(p.x, -maxShift, maxShift);
-				p.y = Mathf.Clamp(p.y, -maxShift, maxShift);
-				p.z = Mathf.Clamp(p.z, -maxShift, maxShift);
-			} else {
-				totalRun = Mathf.Clamp(totalRun * 0.5f, 1f, 1000f);
-				p = p * mainSpeed;
+			Vector3 velocity = MoveSpeed * GetKeyboardInputVelocity();
+
+			if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
+				velocity *= RunMultiplier;
 			}
 
+			// Middle mouse button pan drag.
 			if (Input.GetMouseButton(2)) {
-				Vector3 mouseDrag = mouseDiff;
-				p -= mouseDrag * dragSpeed;
+				velocity -= mouseDelta * PanSensitivity;
 			}
 
-			bool isMouseInsideScreen = 
+			// Reject scrolling input over the inspector or some other window.
+			bool isMouseInsideScreen =
 				0 < mousePos.x && mousePos.x < Screen.width &&
 				0 < mousePos.y && mousePos.y < Screen.height;
-			if (!Input.GetMouseButton(0) && isMouseInsideScreen) {
-				p += Vector3.forward * Input.GetAxis("Mouse ScrollWheel") * scrollWheelSensitivity;
+
+			if (isMouseInsideScreen && !Input.GetMouseButton(0)) {
+				velocity += Vector3.forward * Input.GetAxis("Mouse ScrollWheel") * ScrollWheelSensitivity;
 			}
 
-			p = p * Time.deltaTime;
-			transform.Translate(p);
+			m_LastMousePos = mousePos;
 
-			lastMouse = mousePos;
+			// Avoid dirtying transform if not needed to.
+			if (velocity == Vector3.zero)
+				return;
+
+			transform.Translate(velocity * Time.deltaTime);
+
 		}
 
-		private Vector3 GetBaseInput()
+		// Returns velocity vector containing sum of all input directions. Zero vector if not moving.
+		private Vector3 GetKeyboardInputVelocity()
 		{
-			//returns the basic values, if it's 0 than it's not active.
-			Vector3 p_Velocity = new Vector3();
+			Vector3 velocity = new Vector3();
 			if (Input.GetKey(KeyCode.W)) {
-				p_Velocity += new Vector3(0, 0, 1);
+				velocity += new Vector3(0, 0, 1);
 			}
 			if (Input.GetKey(KeyCode.S)) {
-				p_Velocity += new Vector3(0, 0, -1);
+				velocity += new Vector3(0, 0, -1);
 			}
 			if (Input.GetKey(KeyCode.A)) {
-				p_Velocity += new Vector3(-1, 0, 0);
+				velocity += new Vector3(-1, 0, 0);
 			}
 			if (Input.GetKey(KeyCode.D)) {
-				p_Velocity += new Vector3(1, 0, 0);
+				velocity += new Vector3(1, 0, 0);
 			}
 			if (Input.GetKey(KeyCode.Q)) {
-				p_Velocity += new Vector3(0, -1, 0);
+				velocity += new Vector3(0, -1, 0);
 			}
 			if (Input.GetKey(KeyCode.E)) {
-				p_Velocity += new Vector3(0, 1, 0);
+				velocity += new Vector3(0, 1, 0);
 			}
-			return p_Velocity;
+			return velocity;
 		}
 	}
 }

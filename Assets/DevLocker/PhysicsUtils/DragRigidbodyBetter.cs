@@ -9,6 +9,7 @@ namespace DevLocker.PhysicsUtils
 {
 	public class DragRigidbodyBetter : MonoBehaviour {
 
+		[Tooltip("The spring force applied when dragging rigidbody. The dragging is implemented by attaching an invisible spring joint.")]
 		public float Spring = 50.0f;
 		public float Damper = 5.0f;
 		public float Drag = 10.0f;
@@ -17,15 +18,22 @@ namespace DevLocker.PhysicsUtils
 		public float ScrollWheelSensitivity = 5.0f;
 		public float RotateSpringSpeed = 10.0f;
 
-		public KeyCode KeyToPinSpring = KeyCode.Space;	// Pin dragged spring to its current location.
-		public KeyCode KeyToClearPins = KeyCode.Delete;	// Delete all pinned springs.
-		public KeyCode KeyToRotateLeft = KeyCode.Z;		// Twist spring
-		public KeyCode KeyToRotateRight = KeyCode.C;    // Twist spring
+		[Tooltip("Pin dragged spring to its current location.")]
+		public KeyCode KeyToPinSpring = KeyCode.Space;
 
-		// Set any LineRenderer prefab to render the used springs for the drag.
+		[Tooltip("Delete all pinned springs.")]
+		public KeyCode KeyToClearPins = KeyCode.Delete;
+
+		[Tooltip("Twist spring.")]
+		public KeyCode KeyToRotateLeft = KeyCode.Z;
+
+		[Tooltip("Twist spring.")]
+		public KeyCode KeyToRotateRight = KeyCode.C;
+
+		[Tooltip("Set any LineRenderer prefab to render the used springs for the drag.")]
 		public LineRenderer SpringRenderer;
 
-		private int springCount = 1;
+		private int m_SpringCount = 1;
 		private SpringJoint m_SpringJoint;
 		private LineRenderer m_SpringRenderer;
 
@@ -55,13 +63,13 @@ namespace DevLocker.PhysicsUtils
 			}
 
 			if (!m_SpringJoint) {
-				var go = new GameObject("Rigidbody dragger-" + springCount);
+				var go = new GameObject("Rigidbody dragger-" + m_SpringCount);
 				go.transform.parent = transform;
 				go.transform.localPosition = Vector3.zero;
 				Rigidbody body = go.AddComponent<Rigidbody>();
 				m_SpringJoint = go.AddComponent<SpringJoint>();
 				body.isKinematic = true;
-				springCount++;
+				m_SpringCount++;
 
 				if (SpringRenderer) {
 					m_SpringRenderer = GameObject.Instantiate(SpringRenderer.gameObject, m_SpringJoint.transform, true).GetComponent<LineRenderer>();
@@ -93,13 +101,13 @@ namespace DevLocker.PhysicsUtils
 			var mainCamera = FindCamera();
 			while (Input.GetMouseButton(0) && !Input.GetKeyDown(KeyToPinSpring)) {
 				distance += Input.GetAxis("Mouse ScrollWheel") * ScrollWheelSensitivity;
-				
+
 				var ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 				m_SpringJoint.transform.position = ray.GetPoint(distance);
 
 				var connectedPosition = m_SpringJoint.connectedBody.transform.position +
 										m_SpringJoint.connectedBody.rotation * m_SpringJoint.connectedAnchor;
-				
+
 				var axis = m_SpringJoint.transform.position - connectedPosition;
 				if (Input.GetKey(KeyToRotateLeft)) {
 					m_SpringJoint.connectedBody.transform.Rotate(axis, RotateSpringSpeed, Space.World);
