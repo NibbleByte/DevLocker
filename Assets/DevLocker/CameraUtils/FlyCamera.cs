@@ -4,6 +4,9 @@ namespace DevLocker.CameraUtils
 {
 	/// <summary>
 	/// Allows the camera to be controlled like the Scene View camera in the Unity Editor.
+	/// Attach to your camera game object.
+	/// This is an heavily improved version of Christer Kaitila's FlyCamera script:
+	/// https://gist.github.com/McFunkypants/5a9dad582461cb8d9de3
 	/// </summary>
 	public class FlyCamera : MonoBehaviour
 	{
