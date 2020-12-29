@@ -7,6 +7,8 @@ namespace DevLocker.CameraUtils
 	/// Attach to your camera game object.
 	/// This is an heavily improved version of Christer Kaitila's FlyCamera script:
 	/// https://gist.github.com/McFunkypants/5a9dad582461cb8d9de3
+	///
+	/// Link: https://github.com/NibbleByte/DevLocker
 	/// </summary>
 	public class FlyCamera : MonoBehaviour
 	{

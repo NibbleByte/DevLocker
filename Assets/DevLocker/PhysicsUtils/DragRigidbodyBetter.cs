@@ -4,6 +4,8 @@ using UnityEngine;
 /// <summary>
 /// This script is a replacement for the now removed DragRigidbody that was packed with the Unity Standard Assets.
 /// It adds some neat features and controls.
+///
+/// Link: https://github.com/NibbleByte/DevLocker
 /// </summary>
 namespace DevLocker.PhysicsUtils
 {

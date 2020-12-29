@@ -923,8 +923,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "Camera: \n- WASD or Middle Click to move\n- Q / E are up / down\n- Right
-    Click to drag\n- Scroll Wheel - zoom"
+  m_Text: "Camera: \n- WASD to move\n- Q / E are up / down\n- Hold Shift to speed
+    up\n- Pan with the middle mouse button\n- Rotate with the right mouse button\n-
+    Scroll wheel - zoom"
 --- !u!222 &1725399544
 CanvasRenderer:
   m_ObjectHideFlags: 0

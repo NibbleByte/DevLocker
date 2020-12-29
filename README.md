@@ -17,13 +17,16 @@ While dragging stuff:
 ![DragRagdollBetter](Docs/Screenshots/DragRagdollBetterShot.png)
 
 ## FlyCamera.cs
-Allows the camera to be controlled like the Scene View camera in the Unity Editor (using right-click-drag + WASD). This is an improved version of [Christer Kaitila](https://gist.github.com/McFunkypants/5a9dad582461cb8d9de3)'s FlyCamera script. Just slap it on your camera and it will start working.
+Allows the game camera to be controlled like the editor Scene View camera (using right-click-drag + WASD). This is an improved version of [Christer Kaitila](https://gist.github.com/McFunkypants/5a9dad582461cb8d9de3)'s FlyCamera script. Just slap it on your camera and it will start working.
+Very useful for game jams or prototyping.
 ```
-Camera: 
-- WASD or Middle Click to move
+Controls: 
+- WASD to move
 - Q / E are up / down
-- Right Click to rotate
-- Scroll Wheel - zoom
+- Hold Shift to speed up
+- Pan with the middle mouse button
+- Rotate with the right mouse button
+- Scroll wheel - zoom
 ```
 ![FlyCamera](Docs/Screenshots/FlyCameraShot.png)
 
