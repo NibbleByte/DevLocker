@@ -342,8 +342,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -120, y: -75}
-  m_SizeDelta: {x: 220, y: 120}
+  m_AnchoredPosition: {x: -153, y: -75}
+  m_SizeDelta: {x: 285, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &340436796
 MonoBehaviour:
@@ -376,8 +376,10 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "Drag stuff: \n- Left Click - drag\nWhile dragging stuff:\n- Scroll wheel
-    - drag along z\n- Space - pin spring\n- Delete - destroy pins\n- Z/C - twist left/right"
+  m_Text: "Drag stuff: \nLeft mouse button on any rigidbody - drag it.\nWhile dragging:\n-
+    Scroll wheel - drag object closer / further\n- Space - pin active spring where
+    it is\n- Delete - destroy all pinned springs\n- Z/C - twist active spring to left
+    or right"
 --- !u!222 &340436797
 CanvasRenderer:
   m_ObjectHideFlags: 0

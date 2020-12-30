@@ -3,16 +3,21 @@
 Collection of useful Unity 3D tools and scripts that don't have their own repo just yet. Some of the scripts are gathered from the internet and improved over time (since they didn't have a proper home).
 
 ## DragRigidbodyBetter.cs
+Simple script to drag around ragdoll (or any object with Rigidbody) with the mouse.
+It works by temporarily attaching invisible spring joint to the clicked rigidbody and moving it with the mouse.
+Useful for testing out the limits of your ragdoll setup.
+Usage: attach the DragRigidbodyBetter script to an empty object in the scene. It will spawn dragged springs as child objects.
+
 This script is a replacement for the now removed DragRigidbody that was packed with the Unity Standard Assets.
 It adds some neat features and controls like twisting, pin the springs and render the springs.
 ```
-Drag stuff: 
-- Left Click - drag
-While dragging stuff:
-- Scroll wheel - drag along z
-- Space - pin spring
-- Delete - destroy pins
-- Z/C - twist left/right
+Controls: 
+Left mouse button on any rigidbody - drag it.
+While dragging:
+- Scroll wheel - drag object closer or further
+- Space - pin active spring at current mouse position
+- Delete - destroy all pinned springs
+- Z/C - twist active spring to left or right
 ```
 ![DragRagdollBetter](Docs/Screenshots/DragRagdollBetterShot.png)
 
