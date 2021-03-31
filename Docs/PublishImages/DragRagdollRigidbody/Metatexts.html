@@ -32,6 +32,13 @@ Very useful for game jams or prototyping. <br />
 &#8226; Rotate with the right mouse button <br />
 &#8226; Scroll wheel - zoom <br />
 <br />
+<strong>Troubleshooting:</strong><br />
+If dragging rigidbodies doesn’t work, make sure the following conditions are met: <br />
+&#8226; Rigidbodies must have "Is Kinematic" turned off. <br />
+&#8226; Rigidbodies shouldn’t weigh too much. If they do, increase the drag force via the “Spring” value of script.<br />
+&#8226; Every rigidbody must have child colliders – colliders outside rigidbodies can’t be dragged.<br />
+&#8226; No other component is controlling the rigidbodies or colliders (for example Animator).<br />
+<br />
 <strong>======== Links ========</strong><br />
 <a href="https://github.com/NibbleByte/DevLocker">GitHub</a> <br />
 <br/>
