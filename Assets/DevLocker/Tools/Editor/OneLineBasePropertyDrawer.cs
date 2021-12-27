@@ -105,7 +105,7 @@ namespace DevLocker.Tools
 				if (pd.Label != null) {
 					rect.width = pd.LabelWidth;
 
-					EditorGUI.LabelField(rect, pd.Label);
+					GUI.Label(rect, pd.Label);
 
 					rect.x += rect.width;
 					width -= pd.LabelWidth;
