@@ -1,0 +1,16 @@
+{
+    "name": "DevLocker.Animations",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b6b2b83d5769ef345b3ef9292c6e9107"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
