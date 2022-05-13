@@ -60,3 +60,5 @@ crashlytics-build.properties
 
 /Assets/AssetStoreTools
 /Assets/AssetStoreTools.meta
+/*.vsconfig
+/UserSettings

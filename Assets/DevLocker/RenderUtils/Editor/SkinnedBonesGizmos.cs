@@ -43,7 +43,7 @@ namespace DevLocker.RenderUtils
 
 		static SkinnedBonesGizmos()
 		{
-			SceneView.onSceneGUIDelegate += OnSceneGUI;
+			SceneView.duringSceneGui += OnSceneGUI;
 			Selection.selectionChanged += OnSelectionChanged;
 		}
 
