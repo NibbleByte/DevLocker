@@ -41,10 +41,30 @@ namespace DevLocker.RenderUtils
 		private static GUIStyle BONE_SPHERE_LABEL_STYLE;
 		private static GUIStyle BONE_MISSING_LABEL_STYLE;
 
+		private static readonly string PreferenceActive = $"{nameof(SkinnedBonesGizmos)}_Active";
+
 		static SkinnedBonesGizmos()
 		{
-			SceneView.duringSceneGui += OnSceneGUI;
-			Selection.selectionChanged += OnSelectionChanged;
+			RefreshPreferences();
+		}
+
+		public static void ToggleActive()
+		{
+			EditorPrefs.SetBool(PreferenceActive, !EditorPrefs.GetBool(PreferenceActive, false));
+			RefreshPreferences();
+			OnSelectionChanged();
+			SceneView.RepaintAll();
+		}
+
+		private static void RefreshPreferences()
+		{
+			SceneView.duringSceneGui -= OnSceneGUI;
+			Selection.selectionChanged -= OnSelectionChanged;
+
+			if (EditorPrefs.GetBool(PreferenceActive, false)) {
+				SceneView.duringSceneGui += OnSceneGUI;
+				Selection.selectionChanged += OnSelectionChanged;
+			}
 		}
 
 		private static void OnSelectionChanged()
@@ -192,7 +212,6 @@ namespace DevLocker.RenderUtils
 			}
 
 			// TODO: Draw lines from and to only if parented?
-
 
 			// Draw lines and cones along the bones.
 			{
