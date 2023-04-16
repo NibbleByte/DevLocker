@@ -23,7 +23,7 @@ namespace DevLocker.RenderUtils
 
 		private BoneInfo[] _boneInfos = null;
 		private int _invalidIndecesFound = 0;
-		
+
 		private bool _showEmptyWeightBones = false;
 
 		public SkinnedMeshRendererBonesDrawer()
@@ -33,7 +33,7 @@ namespace DevLocker.RenderUtils
 		public override void OnInspectorGUI()
 		{
 			base.OnInspectorGUI();
-			
+
 			EditorGUILayout.Space();
 
 			if (_boneInfos != null) {
@@ -43,7 +43,7 @@ namespace DevLocker.RenderUtils
 
 				bool hasEmptyWeightBones = false;
 				int displayedBones = 0;
-				
+
 				foreach (var boneInfo in _boneInfos) {
 					if (boneInfo.References == 0) {
 						hasEmptyWeightBones = true;
@@ -58,17 +58,17 @@ namespace DevLocker.RenderUtils
 						displayedBones++;
 					}
 				}
-				
+
 				GUILayout.BeginHorizontal();
 
 				GUILayout.Label("Count: ", GUILayout.Width(50f));
 				EditorGUILayout.TextField(displayedBones.ToString(), GUILayout.Width(32f));
 				GUILayout.Space(15f);
-				
+
 				if (hasEmptyWeightBones) {
 					_showEmptyWeightBones = EditorGUILayout.Toggle("Show no weight bones", _showEmptyWeightBones);
 				}
-				
+
 				GUILayout.EndHorizontal();
 
 				if (GUILayout.Button("Hide All Bones")) {
@@ -80,14 +80,14 @@ namespace DevLocker.RenderUtils
 				if (GUILayout.Button("Show All Bones")) {
 					var renderer = (SkinnedMeshRenderer) target;
 					var mesh = renderer.sharedMesh;
-					
+
 					if (mesh == null)
 						return;
-					
+
 					_boneInfos = renderer.bones
 						.Select(b => new BoneInfo() { Bone = b})
 						.ToArray();
-					
+
 #if UNITY_2019
 					var nativeWeights = mesh.GetAllBoneWeights();
 					foreach (var boneWeight1 in nativeWeights) {
@@ -129,9 +129,13 @@ namespace DevLocker.RenderUtils
 #endif
 				}
 			}
-			
+
 			if (GUILayout.Button("Toggle Bone Gizmos")) {
 				SkinnedBonesGizmos.ToggleActive();
+			}
+
+			if (SkinnedBonesGizmos.IsActive) {
+				SkinnedBonesGizmos.Size = EditorGUILayout.Slider("Bones Size", SkinnedBonesGizmos.Size, 0f, 5f);
 			}
 		}
 

@@ -19,38 +19,57 @@ namespace DevLocker.RenderUtils
 			public SkinnedMeshRenderer Renderer;
 			public Transform[] Bones;
 			public BoneSegment[] BoneSegments;
-			public float AverageDistance;
+
+			public bool HasMissingBones;
 		}
 
 		private struct BoneSegment
 		{
-			public Transform Bone1;
-			public Transform Bone2;
+			public Transform Parent;
+			public Transform Bone;
 
-			public BoneSegment(Transform bone1, Transform bone2)
+			public float Distance;
+
+			public BoneSegment(Transform parent, Transform bone, float distance)
 			{
-				Bone1 = bone1;
-				Bone2 = bone2;
+				Parent = parent;
+				Bone = bone;
+				Distance = distance;
 			}
 		}
 
-		private static List<TargetBonesData> _targets = new List<TargetBonesData>();
+		private static List<TargetBonesData> s_Targets = new List<TargetBonesData>();
 
-		private static readonly Color BONE_LINE_COLOR = Color.red;
-		private static readonly Color BONE_SPHERE_COLOR = Color.cyan;
-		private static GUIStyle BONE_SPHERE_LABEL_STYLE;
-		private static GUIStyle BONE_MISSING_LABEL_STYLE;
+		private static readonly Color s_BonesColor = Color.red;
+		private static GUIStyle s_BonesMissingLabelStyle;
 
-		private static readonly string PreferenceActive = $"{nameof(SkinnedBonesGizmos)}_Active";
+		public static bool IsActive { get; private set; }
+		public static float Size {
+			get => s_SizeMultiplier;
+			set {
+				if (s_SizeMultiplier == value)
+					return;
+
+				s_SizeMultiplier = value;
+				EditorPrefs.SetFloat(s_PreferenceSize, s_SizeMultiplier);
+			}
+		}
+
+		private static float s_SizeMultiplier = 1f;
+		private const float s_BaseSizeMultiplier = 0.2f;
+
+		private static readonly string s_PreferenceActive = $"{nameof(SkinnedBonesGizmos)}_Active";
+		private static readonly string s_PreferenceSize = $"{nameof(SkinnedBonesGizmos)}_Size";
 
 		static SkinnedBonesGizmos()
 		{
 			RefreshPreferences();
+			OnSelectionChanged();
 		}
 
 		public static void ToggleActive()
 		{
-			EditorPrefs.SetBool(PreferenceActive, !EditorPrefs.GetBool(PreferenceActive, false));
+			EditorPrefs.SetBool(s_PreferenceActive, !EditorPrefs.GetBool(s_PreferenceActive, false));
 			RefreshPreferences();
 			OnSelectionChanged();
 			SceneView.RepaintAll();
@@ -61,15 +80,34 @@ namespace DevLocker.RenderUtils
 			SceneView.duringSceneGui -= OnSceneGUI;
 			Selection.selectionChanged -= OnSelectionChanged;
 
-			if (EditorPrefs.GetBool(PreferenceActive, false)) {
+			IsActive = EditorPrefs.GetBool(s_PreferenceActive, false);
+			s_SizeMultiplier = EditorPrefs.GetFloat(s_PreferenceSize, 1f);
+
+			if (IsActive) {
 				SceneView.duringSceneGui += OnSceneGUI;
 				Selection.selectionChanged += OnSelectionChanged;
 			}
 		}
 
+		private static void InitStyles()
+		{
+			s_BonesMissingLabelStyle = new GUIStyle(EditorStyles.helpBox);
+			s_BonesMissingLabelStyle.normal.textColor = Color.red;
+			s_BonesMissingLabelStyle.font = EditorStyles.boldFont;
+			s_BonesMissingLabelStyle.fontSize = 14;
+			s_BonesMissingLabelStyle.fontStyle = FontStyle.Bold;
+		}
+
+
 		private static void OnSelectionChanged()
 		{
-			_targets.Clear();
+			var allBones = s_Targets.SelectMany(tb => tb.Bones).ToList();
+
+			// Selected a child transform - don't clear the selection gizmos.
+			if (Selection.gameObjects.Any(go => allBones.Contains(go.transform)))
+				return;
+
+			s_Targets.Clear();
 
 			foreach (var go in Selection.gameObjects) {
 
@@ -81,7 +119,7 @@ namespace DevLocker.RenderUtils
 					if (renderer.bones.Length == 0)
 						continue;
 
-					_targets.Add(CreateTargetBoneData(renderer));
+					s_Targets.Add(CreateTargetBoneData(renderer));
 				}
 
 			}
@@ -91,95 +129,83 @@ namespace DevLocker.RenderUtils
 		{
 			var bones = renderer.bones;
 
-			// Will be handled again in drawing.
-			if (bones.Any(b => b == null)) {
-				return new TargetBonesData()
-				{
-					Renderer = renderer,
-					Bones = bones,
-					BoneSegments = new BoneSegment[0],
-					AverageDistance = 0.0f
-				};
-			}
-
-
+			bool hasMissingBones = false;
 			var boneSegments = new List<BoneSegment>();
-			foreach (var bone in bones) {
+			for(int i = 0; i < bones.Length; ++i) {
+				Transform bone = bones[i];
+				if (bone == null) {
+					hasMissingBones = true;
+					continue;
+				}
 
-				// The "#" check is specific for our Phoenix Point game, as we scatter (re-parent) bones around the rig.
-				var parent = bone.name.StartsWith("#") ? bone.parent.parent : bone.parent;
-				while (parent != null && !bones.Any(b => b == parent || (b.name.StartsWith("#") && b.parent == parent))) {
+				var parent = bone.parent;
+				while (parent != null && !bones.Any(b => b == parent)) {
 					parent = parent.parent;
 				}
 
-				if (parent != null) {
-					boneSegments.Add(new BoneSegment(parent, bone));
+
+				float minDistance = float.MaxValue;
+
+				if (parent == null) {
+
+					foreach (Transform otherBone in bones) {
+						if (otherBone == null || bone == otherBone)
+							continue;
+
+						float distance = Vector3.Distance(bone.position, otherBone.position);
+						if (distance < minDistance) {
+							minDistance = distance;
+						}
+					}
+
+				} else {
+					minDistance = Vector3.Distance(parent.position, bone.position);
 				}
 
-			}
 
-
-			float averageDist = 0.0f;
-
-			if (boneSegments.Count > 1) {
-				int distCount = 0;
-				foreach (var boneSegment in boneSegments) {
-
-					var dist = Vector3.Distance(boneSegment.Bone1.position, boneSegment.Bone2.position);
-					if (dist < 0.001f)
-						continue;
-
-					averageDist += Vector3.Distance(boneSegment.Bone1.position, boneSegment.Bone2.position);
-					distCount++;
+				if (minDistance == float.MaxValue) {
+					minDistance = 0.5f;
 				}
-				averageDist = averageDist / distCount;
+
+				boneSegments.Add(new BoneSegment(parent, bone, minDistance));
 			}
 
+			// Create segments with no parent for all end bones so they can also be clicked.
+			foreach(Transform bone in bones) {
+				if (bone == null)
+					continue;
+
+				if (!boneSegments.Any(bs => bs.Parent == bone)) {
+					float minDistance = boneSegments.FirstOrDefault(b => b.Bone == bone).Distance;
+					boneSegments.Add(new BoneSegment(null, bone, minDistance));
+				}
+			}
 
 			return new TargetBonesData()
 			{
 				Renderer = renderer,
 				Bones = bones,
 				BoneSegments = boneSegments.ToArray(),
-				// If animated, AverageDistance would remain static, but it is an optimization. Maybe not needed?
-				AverageDistance = averageDist
+				HasMissingBones = hasMissingBones,
 			};
-		}
-
-		private static void InitStyles()
-		{
-			BONE_SPHERE_LABEL_STYLE = new GUIStyle();
-			BONE_SPHERE_LABEL_STYLE.alignment = TextAnchor.MiddleCenter;
-			BONE_SPHERE_LABEL_STYLE.border = new RectOffset();
-			//BONE_SPHERE_LABEL_STYLE.contentOffset = new Vector2(-0f, -3f);
-			BONE_SPHERE_LABEL_STYLE.margin = new RectOffset();
-			BONE_SPHERE_LABEL_STYLE.padding = new RectOffset();
-			BONE_SPHERE_LABEL_STYLE.normal.textColor = Color.black;
-			BONE_SPHERE_LABEL_STYLE.fontSize = 10;
-
-			BONE_MISSING_LABEL_STYLE = new GUIStyle(EditorStyles.helpBox);
-			BONE_MISSING_LABEL_STYLE.normal.textColor = Color.red;
-			BONE_MISSING_LABEL_STYLE.font = EditorStyles.boldFont;
-			BONE_MISSING_LABEL_STYLE.fontSize = 14;
-			BONE_MISSING_LABEL_STYLE.fontStyle = FontStyle.Bold;
 		}
 
 		private static void OnSceneGUI(SceneView sceneView)
 		{
-			if (BONE_SPHERE_LABEL_STYLE == null) {
+			if (s_BonesMissingLabelStyle == null) {
 				InitStyles();
 			}
 
-			for (int i = 0; i < _targets.Count; ++i) {
+			for (int i = 0; i < s_Targets.Count; ++i) {
 
 				// Destroyed in the mean time.
-				if (_targets[i].Renderer == null) {
-					_targets.RemoveAt(i);
+				if (s_Targets[i].Renderer == null) {
+					s_Targets.RemoveAt(i);
 					--i;
 					continue;
 				}
 
-				DrawBoneHandles(_targets[i]);
+				DrawBoneHandles(s_Targets[i]);
 			}
 
 		}
@@ -187,39 +213,26 @@ namespace DevLocker.RenderUtils
 
 		private static void DrawBoneHandles(TargetBonesData target)
 		{
-
 			Handles.zTest = CompareFunction.Always;
 
 			var bones = target.Bones;
 
-			// Bones could be destroyed in any moment (edit or play mode).
-			if (bones.Any(b => b == null)) {
-				DrawMissingBonesSign(target);
-				return;
-			}
+			Handles.color = s_BonesColor;
 
-			// Single bone is a special case.
-			if (bones.Length <= 1) {
-				if (bones.Length == 1) {
-					DrawLoneBone(bones[0]);
+			bool hasMissingBones = target.HasMissingBones;
+
+			foreach (var boneSegment in target.BoneSegments) {
+
+				if (boneSegment.Bone == null) {
+					hasMissingBones = true;
+					continue;
 				}
-				return;
-			}
 
-			if (target.AverageDistance < 0.001f) {
-				DrawLoneBone(bones[0]);
-				return;
-			}
+				if (boneSegment.Parent) {
 
-			// TODO: Draw lines from and to only if parented?
 
-			// Draw lines and cones along the bones.
-			{
-				Handles.color = BONE_LINE_COLOR;
-				foreach (var boneSegment in target.BoneSegments) {
-
-					var pos1 = boneSegment.Bone1.position;
-					var pos2 = boneSegment.Bone2.position;
+					var pos1 = boneSegment.Parent.position;
+					var pos2 = boneSegment.Bone.position;
 					var dist = pos2 - pos1;
 
 					if (dist == Vector3.zero)
@@ -228,23 +241,27 @@ namespace DevLocker.RenderUtils
 					Handles.DrawLine(pos1, pos2);
 
 					var conePos = pos1 + dist / 2f;
-					Handles.ConeHandleCap(0, conePos, Quaternion.LookRotation(dist.normalized), HandleSize(conePos, target.AverageDistance, 0.5f), Event.current.type);
 
+					var handleSize = dist.magnitude * s_SizeMultiplier * s_BaseSizeMultiplier;
+
+					if (Handles.Button(conePos, Quaternion.LookRotation(dist.normalized), handleSize, handleSize, Handles.ConeHandleCap)) {
+						Selection.activeGameObject = boneSegment.Parent.gameObject;
+					}
+
+				} else {
+
+					var handleSie = boneSegment.Distance * s_SizeMultiplier * s_BaseSizeMultiplier;
+
+					if (Handles.Button(boneSegment.Bone.position, Quaternion.identity, handleSie, handleSie, Handles.SphereHandleCap)) {
+						Selection.activeGameObject = boneSegment.Bone.gameObject;
+					}
 				}
+
 			}
 
-			Handles.color = BONE_SPHERE_COLOR;
-			for (int i = 0; i < bones.Length; ++i) {
-				var bone = bones[i];
-				var handleSie = HandleSize(bone.position, target.AverageDistance);
-
-				if (Handles.Button(bone.position, Quaternion.identity, handleSie, handleSie, Handles.SphereHandleCap)) {
-					Selection.activeGameObject = bone.gameObject;
-				}
-
-				BONE_SPHERE_LABEL_STYLE.contentOffset = i < 10 ? new Vector2(-0.5f, -3f) : new Vector2(-3f, -3f);
-
-				Handles.Label(bone.position, i.ToString(), BONE_SPHERE_LABEL_STYLE);
+			// Bones could be destroyed in any moment (edit or play mode).
+			if (hasMissingBones) {
+				DrawMissingBonesSign(target);
 			}
 		}
 
@@ -256,22 +273,7 @@ namespace DevLocker.RenderUtils
 				bone = target.Renderer.transform;
 			}
 
-			Handles.Label(bone.position, "Missing bones!!!", BONE_MISSING_LABEL_STYLE);
-		}
-
-		private static void DrawLoneBone(Transform bone)
-		{
-			var handleSie = HandleSize(bone.position, 0.5f);
-
-			Handles.color = BONE_SPHERE_COLOR;
-			if (Handles.Button(bone.position, Quaternion.identity, handleSie, handleSie, Handles.SphereHandleCap)) {
-				Selection.activeGameObject = bone.gameObject;
-			}
-		}
-
-		private static float HandleSize(Vector3 position, float averageDist, float modifier = 1.0f)
-		{
-			return 0.3f * averageDist * modifier;
+			Handles.Label(bone.position + Vector3.down * 0.05f, "Missing bones!!!", s_BonesMissingLabelStyle);
 		}
 	}
 
