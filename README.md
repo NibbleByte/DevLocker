@@ -40,11 +40,6 @@ Draws gizmos for the skinned bones and their links. Select any SkinnedMeshRender
 
 ![SkinnedBonesGizmos](Docs/Screenshots/SkinnedBonesGizmosShot.png)
 
-## MiscUtils.cs
-Adds menu items "Copy selected GUIDs" and "Edit With.." to the assets context menu. "Edit With..." currently "supports" Notepad++ and Sublime. Very useful for debugging.
-
-![MiscUtils](Docs/Screenshots/MiscUtilsShot.png)
-
 ## TransformResetEditor.cs
 Adds reset buttons next to position, rotation and scale controls of the Transform component. Additionally, shows the world position.
 
