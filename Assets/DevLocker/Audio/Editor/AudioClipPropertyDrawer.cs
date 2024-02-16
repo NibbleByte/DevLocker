@@ -17,10 +17,22 @@ namespace DevLocker.Audio.Editor
 #endif
 	public class AudioClipPropertyDrawer : PropertyDrawer
 	{
+		private static GUIStyle s_ButtonStyle;
+		private static GUIContent s_PlayIconContent;
+		private static GUIContent s_StopIconContent;
+
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
 			const float PLAY_BTN_WIDTH = 20.0f;
 			const float PADDING = 4.0f;
+
+			if (s_ButtonStyle == null) {
+				s_ButtonStyle = new GUIStyle(EditorStyles.miniButton);
+				s_ButtonStyle.padding = new RectOffset();
+				s_ButtonStyle.margin = new RectOffset();
+			}
+			if (s_PlayIconContent == null) s_PlayIconContent = new GUIContent(EditorGUIUtility.FindTexture("PlayButton On"), "Play the sound");
+			if (s_StopIconContent == null) s_StopIconContent = new GUIContent(EditorGUIUtility.FindTexture("PreMatQuad"), "Stop the playing sound");
 
 			var refRect = new Rect(position.position, new Vector2(position.width - PLAY_BTN_WIDTH - PADDING, EditorGUIUtility.singleLineHeight));
 			var playBtnRect = new Rect(position.position, new Vector2(PLAY_BTN_WIDTH, EditorGUIUtility.singleLineHeight));
@@ -29,7 +41,7 @@ namespace DevLocker.Audio.Editor
 			EditorGUI.PropertyField(refRect, property);
 
 			if (AudioEditorUtils.IsPreviewClipPlaying()) {
-				if (GUI.Button(playBtnRect, new GUIContent("S", "Stop the playing sound"))) {
+				if (GUI.Button(playBtnRect, s_StopIconContent, s_ButtonStyle)) {
 					AudioEditorUtils.StopAllPreviewClips();
 				}
 
@@ -42,7 +54,7 @@ namespace DevLocker.Audio.Editor
 
 			} else {
 
-				if (GUI.Button(playBtnRect, new GUIContent("P", "Play the sound"))) {
+				if (GUI.Button(playBtnRect, s_PlayIconContent, s_ButtonStyle)) {
 					if (property.objectReferenceValue is AudioClip) {
 						AudioEditorUtils.PlayPreviewClip((AudioClip)property.objectReferenceValue);
 					}
