@@ -156,16 +156,8 @@ namespace DevLocker.Audio
 		[ContextMenu("Play")]
 		public virtual void Play()
 		{
-			if (InterruptionFadeDuration > 0f && IsPlaying) {
-				// Just kill the coroutine and resume from where it left off.
-				if (m_VolumeCoroutine != null) {
-					StopCoroutine(m_VolumeCoroutine);
-				}
-				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(InterruptionFadeDuration, false, AudioSource.Play));
-			} else {
-				StopVolumeCrt();
-				AudioSource.Play();
-			}
+			StopVolumeCrt();
+			AudioSource.Play();
 		}
 
 		public virtual void PlayDelayed(float delaySeconds)
