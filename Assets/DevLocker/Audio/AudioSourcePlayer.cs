@@ -1,6 +1,11 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DevLocker.Audio
 {
@@ -10,6 +15,21 @@ namespace DevLocker.Audio
 	/// </summary>
 	public class AudioSourcePlayer : MonoBehaviour
 	{
+		public enum RepeatPatternType
+		{
+			Once = 0,
+			Loop = 1,
+
+			RepeatInterval = 4,
+		}
+
+		[Serializable]
+		public struct IntervalRange
+		{
+			public float MinSeconds;
+			public float MaxSeconds;
+		}
+
 #if UNITY_2023_2_OR_NEWER
 		public AudioResource AudioResource {
 			get => m_AudioResource;
@@ -62,11 +82,30 @@ namespace DevLocker.Audio
 			}
 		}
 
+		/// <summary>
+		/// Short-cut for "<see cref="RepeatPattern"/> = <see cref="RepeatPatternType.Loop"/>"
+		/// </summary>
 		public bool Loop {
-			get => m_Loop;
+			get => RepeatPattern == RepeatPatternType.Loop;
+			set => RepeatPattern = RepeatPatternType.Loop;
+		}
+
+		public RepeatPatternType RepeatPattern {
+			get => m_RepeatPattern;
 			set {
-				m_Loop = value;
-				if (m_AudioSource) m_AudioSource.loop = value;
+				m_RepeatPattern = value;
+				if (m_AudioSource) m_AudioSource.loop = value == RepeatPatternType.Loop;
+				if (value == RepeatPatternType.RepeatInterval) {
+					m_NextPlayTime = Time.time;
+					m_LastIsPlaying = IsPlaying;
+				}
+			}
+		}
+
+		public IntervalRange RepeatIntervalRange {
+			get => m_RepeatIntervalRange;
+			set {
+				m_RepeatIntervalRange = value;
 			}
 		}
 
@@ -113,8 +152,13 @@ namespace DevLocker.Audio
 		private bool m_PlayOnEnable = true;
 
 		[SerializeField]
-		[Tooltip("Loop the played sound?")]
-		private bool m_Loop;
+		[Tooltip("How sound should be repeated, if needed.")]
+		[UnityEngine.Serialization.FormerlySerializedAs("m_Loop")]
+		private RepeatPatternType m_RepeatPattern;
+
+		[SerializeField]
+		[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
+		private IntervalRange m_RepeatIntervalRange;
 
 		[Tooltip("Fade duration when sound is interrupted (Stop, Pause, Unpause)")]
 		public float InterruptionFadeDuration = 0.2f;
@@ -127,6 +171,10 @@ namespace DevLocker.Audio
 		private AudioSource m_AudioSource;
 
 		private Coroutine m_VolumeCoroutine;
+
+		private float m_NextPlayTime;
+		private bool m_LastIsPlaying;
+		private bool m_ShouldPlayRepeating;
 
 		protected virtual void OnEnable()
 		{
@@ -146,7 +194,29 @@ namespace DevLocker.Audio
 #if UNITY_EDITOR
 			if (InterruptionFadeDuration < 0f) {
 				InterruptionFadeDuration = 0f;
-				UnityEditor.EditorUtility.SetDirty(this);
+				EditorUtility.SetDirty(this);
+			}
+
+			if (m_RepeatIntervalRange.MinSeconds < 0f) {
+				m_RepeatIntervalRange.MinSeconds = 0f;
+				EditorUtility.SetDirty(this);
+			}
+
+			if (m_RepeatIntervalRange.MaxSeconds < m_RepeatIntervalRange.MinSeconds) {
+				m_RepeatIntervalRange.MaxSeconds = m_RepeatIntervalRange.MinSeconds;
+				EditorUtility.SetDirty(this);
+			}
+
+			if (Application.isPlaying && m_AudioSource) {
+				if (m_AudioSource.mute != m_Mute) {
+					m_AudioSource.mute = m_Mute;
+				}
+				if (m_AudioSource.loop != (m_RepeatPattern == RepeatPatternType.Loop)) {
+					m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
+				}
+				if (m_AudioSource.volume != m_Volume) {
+					m_AudioSource.volume = m_Volume;
+				}
 			}
 #endif
 		}
@@ -156,12 +226,14 @@ namespace DevLocker.Audio
 		[ContextMenu("Play")]
 		public virtual void Play()
 		{
+			m_ShouldPlayRepeating = true;
 			StopVolumeCrt();
 			AudioSource.Play();
 		}
 
 		public virtual void PlayDelayed(float delaySeconds)
 		{
+			m_ShouldPlayRepeating = true;
 			StopVolumeCrt();
 			AudioSource.PlayDelayed(delaySeconds);
 		}
@@ -174,6 +246,7 @@ namespace DevLocker.Audio
 
 		public virtual void PlayOnGamepad(int playerIndex)
 		{
+			m_ShouldPlayRepeating = true;
 			StopVolumeCrt();
 			AudioSource.PlayOnGamepad(playerIndex);
 		}
@@ -181,6 +254,8 @@ namespace DevLocker.Audio
 		[ContextMenu("Stop")]
 		public virtual void Stop()
 		{
+			m_ShouldPlayRepeating = false;
+
 			if (InterruptionFadeDuration > 0f) {
 				// Just kill the coroutine and resume from where it left off.
 				if (m_VolumeCoroutine != null) {
@@ -196,6 +271,8 @@ namespace DevLocker.Audio
 		[ContextMenu("Pause")]
 		public virtual void Pause()
 		{
+			m_ShouldPlayRepeating = false;
+
 			if (InterruptionFadeDuration > 0f) {
 				// Just kill the coroutine and resume from where it left off.
 				if (m_VolumeCoroutine != null) {
@@ -212,6 +289,8 @@ namespace DevLocker.Audio
 		[ContextMenu("UnPause")]
 		public virtual void UnPause()
 		{
+			m_ShouldPlayRepeating = true;
+
 			if (InterruptionFadeDuration > 0f) {
 				// Just kill the coroutine and resume from where it left off.
 				if (m_VolumeCoroutine != null) {
@@ -233,14 +312,16 @@ namespace DevLocker.Audio
 		/// </summary>
 		public virtual void DestroyPlayer(bool destroyGameObject = false)
 		{
+			m_ShouldPlayRepeating = false;
+
 			System.Action destroyAction = () => {
 				if (destroyGameObject) {
-					Object.Destroy(gameObject);
+					GameObject.Destroy(gameObject);
 				} else {
 					if (m_AudioSource) {
-						Object.Destroy(m_AudioSource);
+						GameObject.Destroy(m_AudioSource);
 					}
-					Object.Destroy(this);
+					GameObject.Destroy(this);
 				}
 			};
 
@@ -289,6 +370,22 @@ namespace DevLocker.Audio
 			callbackOnFinish?.Invoke();
 		}
 
+		protected virtual void Update()
+		{
+			if (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource && m_AudioSource.resource) {
+				if (IsPlaying != m_LastIsPlaying) {
+					if (!IsPlaying) {
+						m_NextPlayTime = Time.time + UnityEngine.Random.Range(m_RepeatIntervalRange.MinSeconds, m_RepeatIntervalRange.MaxSeconds);
+					}
+					m_LastIsPlaying = IsPlaying;
+				}
+
+				if (!IsPlaying && Time.time >= m_NextPlayTime) {
+					Play();
+				}
+			}
+		}
+
 		private void SetupAudioSource()
 		{
 			if (m_AudioSource && (m_Template == null || m_Template.gameObject != gameObject)) {
@@ -309,7 +406,7 @@ namespace DevLocker.Audio
 			m_AudioSource.clip = m_AudioResource;
 #endif
 			m_AudioSource.outputAudioMixerGroup = m_Output ?? m_AudioSource.outputAudioMixerGroup;
-			m_AudioSource.loop = m_Loop;
+			m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
 			m_AudioSource.volume = m_Volume;
 
 			if (m_Template && m_Template.gameObject != gameObject) {
@@ -334,4 +431,40 @@ namespace DevLocker.Audio
 			}
 		}
 	}
+
+#if UNITY_EDITOR
+	[CustomEditor(typeof(AudioSourcePlayer), true)]
+	[CanEditMultipleObjects]
+	public class __AudioSourcePlayerEditor : Editor
+	{
+		protected void DrawScriptProperty()
+		{
+			EditorGUI.BeginDisabledGroup(true);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Script"));
+			EditorGUI.EndDisabledGroup();
+		}
+
+		public override void OnInspectorGUI()
+		{
+			serializedObject.Update();
+
+			DrawScriptProperty();
+
+			EditorGUI.BeginChangeCheck();
+
+			var repeatPattern = (AudioSourcePlayer.RepeatPatternType) serializedObject.FindProperty("m_RepeatPattern").intValue;
+
+			// Will draw any child properties without [HideInInspector] attribute.
+			if (repeatPattern == AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
+				DrawPropertiesExcluding(serializedObject, "m_Script");
+			} else {
+				DrawPropertiesExcluding(serializedObject, "m_Script", "m_RepeatIntervalRange");
+			}
+
+			if (EditorGUI.EndChangeCheck()) {
+				serializedObject.ApplyModifiedProperties();
+			}
+		}
+	}
+#endif
 }
