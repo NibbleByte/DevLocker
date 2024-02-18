@@ -289,33 +289,6 @@ namespace DevLocker.Audio
 			callbackOnFinish?.Invoke();
 		}
 
-		private void Update()
-		{
-			if (Input.GetKeyDown(KeyCode.G)) {
-				Play();
-			}
-
-			if (Input.GetKeyDown(KeyCode.T)) {
-				if (IsPlaying) {
-					Stop();
-				} else {
-					Play();
-				}
-			}
-
-			if (Input.GetKeyDown(KeyCode.Y)) {
-				if (IsPlaying) {
-					Pause();
-				} else {
-					UnPause();
-				}
-			}
-
-			if (Input.GetKeyDown(KeyCode.K)) {
-				DestroyPlayer(true);
-			}
-		}
-
 		private void SetupAudioSource()
 		{
 			if (m_AudioSource && (m_Template == null || m_Template.gameObject != gameObject)) {
