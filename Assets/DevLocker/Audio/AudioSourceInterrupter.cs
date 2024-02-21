@@ -13,6 +13,9 @@ namespace DevLocker.Audio
 		[Tooltip("AudioSourcePlayers to be stopped (interrupted)")]
 		public AudioSourcePlayer[] Players;
 
+		[Tooltip("Audisources (without players) to be stopped (interrupted)")]
+		public AudioSource[] AudioSources;
+
 		[Tooltip("AudioSourcePlayers that are playing these AudioResources will be stopped")]
 		public AudioResource[] Resources;
 
@@ -55,6 +58,12 @@ namespace DevLocker.Audio
 		{
 			foreach (var player in Players) {
 				if (player && player.IsPlaying) {
+					player.Stop();
+				}
+			}
+
+			foreach (var player in AudioSources) {
+				if (player && player.isPlaying) {
 					player.Stop();
 				}
 			}
