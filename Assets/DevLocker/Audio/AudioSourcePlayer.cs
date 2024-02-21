@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
+using System.Collections.Generic;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -29,6 +31,12 @@ namespace DevLocker.Audio
 			public float MinSeconds;
 			public float MaxSeconds;
 		}
+
+		public delegate void PlayerEventHandler(AudioSourcePlayer player);
+		public static event PlayerEventHandler PlayStarted;
+		public static event PlayerEventHandler PlayPaused;
+		public static event PlayerEventHandler PlayUnpaused;
+		public static event PlayerEventHandler PlayStopped;
 
 #if UNITY_2023_2_OR_NEWER
 		public AudioResource AudioResource {
@@ -127,6 +135,8 @@ namespace DevLocker.Audio
 			}
 		}
 
+		public static IReadOnlyList<AudioSourcePlayer> ActivePlayersRegister => m_ActivePlayersRegister.AsReadOnly();
+
 		[SerializeField]
 		[Tooltip("Resource to play")]
 #if UNITY_2023_2_OR_NEWER
@@ -168,6 +178,8 @@ namespace DevLocker.Audio
 		[Tooltip("Volume of the sound")]
 		private float m_Volume = 1f;
 
+		private static readonly List<AudioSourcePlayer> m_ActivePlayersRegister = new List<AudioSourcePlayer>();
+
 		private AudioSource m_AudioSource;
 
 		private Coroutine m_VolumeCoroutine;
@@ -178,6 +190,8 @@ namespace DevLocker.Audio
 
 		protected virtual void OnEnable()
 		{
+			m_ActivePlayersRegister.Add(this);
+
 			AudioSource.enabled = true;
 			if (PlayOnEnable) {
 				Play();
@@ -186,6 +200,8 @@ namespace DevLocker.Audio
 
 		protected virtual void OnDisable()
 		{
+			m_ActivePlayersRegister.Remove(this);
+
 			AudioSource.enabled = false;
 		}
 
@@ -229,6 +245,8 @@ namespace DevLocker.Audio
 			m_ShouldPlayRepeating = true;
 			StopVolumeCrt();
 			AudioSource.Play();
+
+			PlayStarted?.Invoke(this);
 		}
 
 		public virtual void PlayDelayed(float delaySeconds)
@@ -236,6 +254,8 @@ namespace DevLocker.Audio
 			m_ShouldPlayRepeating = true;
 			StopVolumeCrt();
 			AudioSource.PlayDelayed(delaySeconds);
+
+			PlayStarted?.Invoke(this);
 		}
 
 		public virtual void PlayOneShot(AudioClip clip)
@@ -249,6 +269,8 @@ namespace DevLocker.Audio
 			m_ShouldPlayRepeating = true;
 			StopVolumeCrt();
 			AudioSource.PlayOnGamepad(playerIndex);
+
+			PlayStarted?.Invoke(this);
 		}
 
 		[ContextMenu("Stop")]
@@ -266,6 +288,8 @@ namespace DevLocker.Audio
 				StopVolumeCrt();
 				AudioSource.Stop();
 			}
+
+			PlayStopped?.Invoke(this);
 		}
 
 		[ContextMenu("Pause")]
@@ -284,6 +308,8 @@ namespace DevLocker.Audio
 				StopVolumeCrt();
 				AudioSource.Pause();
 			}
+
+			PlayPaused?.Invoke(this);
 		}
 
 		[ContextMenu("UnPause")]
@@ -304,6 +330,7 @@ namespace DevLocker.Audio
 				AudioSource.UnPause();
 			}
 
+			PlayUnpaused?.Invoke(this);
 		}
 
 		/// <summary>
@@ -335,6 +362,8 @@ namespace DevLocker.Audio
 			} else {
 				destroyAction();
 			}
+
+			PlayStopped?.Invoke(this);
 		}
 
 		private void StopVolumeCrt()
