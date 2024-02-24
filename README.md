@@ -40,6 +40,19 @@ Draws gizmos for the skinned bones and their links. Select any SkinnedMeshRender
 
 ![SkinnedBonesGizmos](Docs/Screenshots/SkinnedBonesGizmosShot.png)
 
+## AudioSourcePlayer & Monitor
+Wraps around the [AudioSource](https://docs.unity3d.com/ScriptReference/AudioSource.html) offering API improvements and simpler interface.
+Also supports fading in and out sounds when interrupted (Stop, Pause, UnPause).
+
+![AudioSourcePlayer](Docs/Screenshots/AudioSourcePlayerShot.png)
+
+Additionally, you can open the "Audio Monitor" window, that displays any plays/stops/pauses/unpauses done by an AudioSourcePlayer.
+![AudioMonitor](Docs/Screenshots/AudioMonitorShot.png)
+
+
+AudioSourcePlayer works great with the [AudioRandomContainer](https://docs.unity3d.com/2023.2/Documentation/Manual/AudioRandomContainer.html) that was recently added in [Unity 2023.2](https://blog.unity.com/engine-platform/2023-2-tech-stream-now-available)
+![AudioRandomContainer](https://blog-api.unity.com/sites/default/files/2023-11/Audio%20Random%20Container%20Window.png?imwidth=1260&)
+
 ## TransformResetEditor.cs
 Adds reset buttons next to position, rotation and scale controls of the Transform component. Additionally, shows the world position.
 
