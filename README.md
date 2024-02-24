@@ -51,7 +51,7 @@ Additionally, you can open the "Audio Monitor" window, that displays any plays/s
 
 
 AudioSourcePlayer works great with the [AudioRandomContainer](https://docs.unity3d.com/2023.2/Documentation/Manual/AudioRandomContainer.html) that was recently added in [Unity 2023.2](https://blog.unity.com/engine-platform/2023-2-tech-stream-now-available)
-![AudioRandomContainer](https://blog-api.unity.com/sites/default/files/2023-11/Audio%20Random%20Container%20Window.png)
+![AudioRandomContainer](Docs/Screenshots/Unity-2023.2-AudioRandomContainerWindow.png)
 
 ## TransformResetEditor.cs
 Adds reset buttons next to position, rotation and scale controls of the Transform component. Additionally, shows the world position.
