@@ -17,7 +17,12 @@ namespace DevLocker.Audio
 		public AudioSource[] AudioSources;
 
 		[Tooltip("AudioSourcePlayers that are playing these AudioResources will be stopped")]
+
+#if UNITY_2023_2_OR_NEWER
 		public AudioResource[] Resources;
+#else
+		public AudioClip[] Resources;
+#endif
 
 		[Tooltip("AudioSourcePlayers that are playing AudioResources with names containing this string (case-insensitive) will be stopped")]
 		public string ResourceNameContains = "";

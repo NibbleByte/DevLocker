@@ -402,7 +402,13 @@ namespace DevLocker.Audio
 
 		protected virtual void Update()
 		{
-			if (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource && m_AudioSource.resource) {
+			if (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource
+#if UNITY_2023_2_OR_NEWER
+				&& m_AudioSource.resource
+#else
+				&& m_AudioSource.clip
+#endif
+				) {
 				if (IsPlaying != m_LastIsPlaying) {
 					if (!IsPlaying) {
 						m_NextPlayTime = Time.time + UnityEngine.Random.Range(m_RepeatIntervalRange.MinSeconds, m_RepeatIntervalRange.MaxSeconds);

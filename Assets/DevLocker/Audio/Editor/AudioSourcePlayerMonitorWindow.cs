@@ -28,7 +28,11 @@ namespace DevLocker.Audio.Editor
 			public float Time;
 
 			public AudioSourcePlayer Player;
+#if UNITY_2023_2_OR_NEWER
 			public AudioResource Resource;
+#else
+			public AudioClip Resource;
+#endif
 			public AudioMixerGroup MixerGroup;
 			public AudioSource Template;
 
@@ -192,6 +196,12 @@ namespace DevLocker.Audio.Editor
 
 			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
 
+#if UNITY_2023_2_OR_NEWER
+			var audioType = typeof(AudioResource);
+#else
+			var audioType = typeof(AudioClip);
+#endif
+
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
 				var action = m_Actions[i];
@@ -203,7 +213,7 @@ namespace DevLocker.Audio.Editor
 
 					float objectMarginFix = 5;
 					EditorGUILayout.ObjectField(action.Player, typeof(AudioSourcePlayer), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
-					EditorGUILayout.ObjectField(action.Resource, typeof(AudioResource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.MixerGroup, typeof(AudioMixerGroup), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.Template, typeof(AudioSource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 
