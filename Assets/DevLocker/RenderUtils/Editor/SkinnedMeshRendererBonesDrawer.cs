@@ -135,7 +135,13 @@ namespace DevLocker.RenderUtils
 			}
 
 			if (SkinnedBonesGizmos.IsActive) {
-				SkinnedBonesGizmos.Size = EditorGUILayout.Slider("Bones Size", SkinnedBonesGizmos.Size, 0f, 5f);
+				EditorGUI.BeginChangeCheck();
+
+				SkinnedBonesGizmos.Size = EditorGUILayout.Slider("Bones Size", SkinnedBonesGizmos.Size, 0f, 8f);
+
+				if (EditorGUI.EndChangeCheck()) {
+					SceneView.RepaintAll();
+				}
 			}
 		}
 
