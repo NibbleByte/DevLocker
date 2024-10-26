@@ -171,25 +171,21 @@ namespace DevLocker.Animations
 			Update();
 		}
 
-		public void TogglePlay(bool play)
-		{
-			Play = play;
-		}
+		#region UnityEvents API
 
-		public void TogglePlayReversed(bool pause)
-		{
-			Play = !pause;
-		}
+		public void TogglePlay() => Play = !Play;
 
-		public void ToggleDirection(bool forward)
-		{
-			Forward = forward;
-		}
+		public void ToggleDirection() => Forward = !Forward;
 
-		public void ToggleDirectionReversed(bool backward)
-		{
-			Forward = !backward;
-		}
+		public void SetPlay(bool play) => Play = play;
+
+		public void SetPlayInversed(bool pause) => Play = !pause;
+
+		public void SetDirection(bool forward) => Forward = forward;
+
+		public void SetDirectionInversed(bool backward) => Forward = !backward;
+
+		#endregion
 
 		void Update()
 		{
