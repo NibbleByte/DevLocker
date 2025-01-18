@@ -360,11 +360,15 @@ namespace DevLocker.Audio
 				}
 				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(InterruptionFadeDuration, false, destroyAction));
 
+				PlayStopped?.Invoke(this);
+
 			} else {
+				StopVolumeCrt();
+				AudioSource.Stop();
+
+				PlayStopped?.Invoke(this);
 				destroyAction();
 			}
-
-			PlayStopped?.Invoke(this);
 		}
 
 		private void StopVolumeCrt()
