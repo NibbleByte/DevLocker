@@ -236,7 +236,7 @@ namespace DevLocker.Audio
 #endif
 		}
 
-		public bool IsPlaying => m_AudioSource && m_AudioSource.isPlaying;
+		public bool IsPlaying => m_AudioSource && (m_AudioSource.isPlaying || (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval));
 
 		[ContextMenu("Play")]
 		public virtual void Play()
@@ -277,6 +277,10 @@ namespace DevLocker.Audio
 		[ContextMenu("Stop")]
 		public virtual void Stop()
 		{
+			// Prevent multiple calls as it will reset the coroutine every time.
+			if (!m_ShouldPlayRepeating)
+				return;
+
 			m_ShouldPlayRepeating = false;
 
 			if (InterruptionFadeDuration > 0f) {
@@ -296,6 +300,10 @@ namespace DevLocker.Audio
 		[ContextMenu("Pause")]
 		public virtual void Pause()
 		{
+			// Prevent multiple calls as it will reset the coroutine every time.
+			if (!m_ShouldPlayRepeating)
+				return;
+
 			m_ShouldPlayRepeating = false;
 
 			if (InterruptionFadeDuration > 0f) {
@@ -316,6 +324,10 @@ namespace DevLocker.Audio
 		[ContextMenu("UnPause")]
 		public virtual void UnPause()
 		{
+			// Prevent multiple calls as it will reset the coroutine every time.
+			if (m_ShouldPlayRepeating)
+				return;
+
 			m_ShouldPlayRepeating = true;
 
 			if (InterruptionFadeDuration > 0f) {
