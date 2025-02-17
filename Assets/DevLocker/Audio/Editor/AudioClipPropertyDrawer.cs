@@ -31,7 +31,7 @@ namespace DevLocker.Audio.Editor
 				s_ButtonStyle.padding = new RectOffset();
 				s_ButtonStyle.margin = new RectOffset();
 			}
-			if (s_PlayIconContent == null) s_PlayIconContent = new GUIContent(EditorGUIUtility.FindTexture("PlayButton On"), "Play the sound");
+			if (s_PlayIconContent == null) s_PlayIconContent = new GUIContent(EditorGUIUtility.FindTexture("PlayButton"), "Play the sound");
 			if (s_StopIconContent == null) s_StopIconContent = new GUIContent(EditorGUIUtility.FindTexture("PreMatQuad"), "Stop the playing sound");
 
 			var refRect = new Rect(position.position, new Vector2(position.width - PLAY_BTN_WIDTH - PADDING, EditorGUIUtility.singleLineHeight));
