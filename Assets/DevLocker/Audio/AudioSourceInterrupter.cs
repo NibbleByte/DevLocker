@@ -37,7 +37,7 @@ namespace DevLocker.Audio
 		void Awake()
 		{
 			if (StopTargetsOnWhenPlaying) {
-				AudioSourcePlayer.PlayStarted += OnPlayStarted; ;
+				AudioSourcePlayer.PlayStarted += OnPlayStarted;
 			}
 		}
 

@@ -27,7 +27,7 @@ namespace DevLocker.Audio.Editor
 			public ActionType Type;
 			public float Time;
 
-			public AudioSourcePlayer Player;
+			public MonoBehaviour Player;
 #if UNITY_2023_2_OR_NEWER
 			public AudioResource Resource;
 #else
@@ -67,6 +67,10 @@ namespace DevLocker.Audio.Editor
 			AudioSourcePlayer.PlayPaused += OnPlayPaused;
 			AudioSourcePlayer.PlayUnpaused += OnPlayUnpaused;
 
+#if UNITY_2023_2_OR_NEWER
+			UIAudioEffects.PlayedAudio += OnUIAudioEffectsPlayed;
+#endif
+
 			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 		}
 
@@ -76,6 +80,10 @@ namespace DevLocker.Audio.Editor
 			AudioSourcePlayer.PlayStopped -= OnPlayStopped;
 			AudioSourcePlayer.PlayPaused -= OnPlayPaused;
 			AudioSourcePlayer.PlayUnpaused -= OnPlayUnpaused;
+
+#if UNITY_2023_2_OR_NEWER
+			UIAudioEffects.PlayedAudio -= OnUIAudioEffectsPlayed;
+#endif
 		}
 
 		private void OnPlayModeStateChanged(PlayModeStateChange stateChange)
@@ -123,6 +131,39 @@ namespace DevLocker.Audio.Editor
 
 			Repaint();
 		}
+
+#if UNITY_2023_2_OR_NEWER
+		private void OnUIAudioEffectsPlayed(UIAudioEffects uiAudioEffects, AudioResource playedResource)
+		{
+			if (!m_ListenForEvents)
+				return;
+
+			m_Actions.Add(new ActionEntry() {
+				Type = ActionType.Play,
+				Time = Time.time,
+
+				Player = uiAudioEffects,
+				Resource = playedResource,
+				MixerGroup = uiAudioEffects.AudioSource?.outputAudioMixerGroup,
+				Template = uiAudioEffects.Template?.GetComponent<AudioSource>(),
+
+				Mute = false,
+				PlayOnEnable = false,
+
+				RepeatPattern = AudioSourcePlayer.RepeatPatternType.Once,
+				Volume = uiAudioEffects.AudioSource?.volume ?? 1f,
+				Pitch = uiAudioEffects.AudioSource?.pitch ?? 1f,
+				SpatialBlend = uiAudioEffects.AudioSource?.spatialBlend ?? 0f,
+
+			});
+
+			if (m_Actions.Count > m_EntriesLimit) {
+				m_Actions.RemoveAt(0);
+			}
+
+			Repaint();
+		}
+#endif
 
 		private void InitStyles()
 		{
@@ -212,7 +253,7 @@ namespace DevLocker.Audio.Editor
 					EditorGUILayout.FloatField(action.Time, GUILayout.Width(timeColumnWidth));
 
 					float objectMarginFix = 5;
-					EditorGUILayout.ObjectField(action.Player, typeof(AudioSourcePlayer), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.MixerGroup, typeof(AudioMixerGroup), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.Template, typeof(AudioSource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));

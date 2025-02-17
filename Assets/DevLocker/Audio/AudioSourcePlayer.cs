@@ -462,25 +462,30 @@ namespace DevLocker.Audio
 			m_AudioSource.volume = m_Volume;
 
 			if (m_Template && m_Template.gameObject != gameObject) {
-				m_AudioSource.bypassEffects = m_Template.bypassEffects;
-				m_AudioSource.bypassListenerEffects = m_Template.bypassListenerEffects;
-				m_AudioSource.bypassReverbZones = m_Template.bypassReverbZones;
-				m_AudioSource.priority = m_Template.priority;
-				m_AudioSource.pitch = m_Template.pitch;
-				m_AudioSource.panStereo = m_Template.panStereo;
-				m_AudioSource.spatialBlend = m_Template.spatialBlend;
-				m_AudioSource.spatializePostEffects = m_Template.spatializePostEffects;
-				m_AudioSource.reverbZoneMix = m_Template.reverbZoneMix;
-
-				m_AudioSource.dopplerLevel = m_Template.dopplerLevel;
-				m_AudioSource.minDistance = m_Template.minDistance;
-				m_AudioSource.maxDistance = m_Template.maxDistance;
-				m_AudioSource.SetCustomCurve(AudioSourceCurveType.CustomRolloff, m_Template.GetCustomCurve(AudioSourceCurveType.CustomRolloff));
-				m_AudioSource.SetCustomCurve(AudioSourceCurveType.SpatialBlend, m_Template.GetCustomCurve(AudioSourceCurveType.SpatialBlend));
-				m_AudioSource.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, m_Template.GetCustomCurve(AudioSourceCurveType.ReverbZoneMix));
-				m_AudioSource.SetCustomCurve(AudioSourceCurveType.Spread, m_Template.GetCustomCurve(AudioSourceCurveType.Spread));
-				m_AudioSource.rolloffMode = m_Template.rolloffMode;	// Because changing the curve changes this property to custom.
+				CopyAudioSourceDetails(m_AudioSource, m_Template);
 			}
+		}
+
+		internal static void CopyAudioSourceDetails(AudioSource destination, AudioSource source)
+		{
+			destination.bypassEffects = source.bypassEffects;
+			destination.bypassListenerEffects = source.bypassListenerEffects;
+			destination.bypassReverbZones = source.bypassReverbZones;
+			destination.priority = source.priority;
+			destination.pitch = source.pitch;
+			destination.panStereo = source.panStereo;
+			destination.spatialBlend = source.spatialBlend;
+			destination.spatializePostEffects = source.spatializePostEffects;
+			destination.reverbZoneMix = source.reverbZoneMix;
+
+			destination.dopplerLevel = source.dopplerLevel;
+			destination.minDistance = source.minDistance;
+			destination.maxDistance = source.maxDistance;
+			destination.SetCustomCurve(AudioSourceCurveType.CustomRolloff, source.GetCustomCurve(AudioSourceCurveType.CustomRolloff));
+			destination.SetCustomCurve(AudioSourceCurveType.SpatialBlend, source.GetCustomCurve(AudioSourceCurveType.SpatialBlend));
+			destination.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, source.GetCustomCurve(AudioSourceCurveType.ReverbZoneMix));
+			destination.SetCustomCurve(AudioSourceCurveType.Spread, source.GetCustomCurve(AudioSourceCurveType.Spread));
+			destination.rolloffMode = source.rolloffMode; // Because changing the curve changes this property to custom.
 		}
 	}
 }
