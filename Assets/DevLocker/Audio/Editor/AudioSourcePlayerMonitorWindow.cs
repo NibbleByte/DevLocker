@@ -47,6 +47,7 @@ namespace DevLocker.Audio.Editor
 		private bool m_ListenForEvents = true;
 		private bool m_ClearOnPlay = true;
 		private int m_EntriesLimit = 100;
+		private bool m_ShowDetails = false;
 
 		private List<ActionEntry> m_Actions = new List<ActionEntry>();
 
@@ -190,6 +191,12 @@ namespace DevLocker.Audio.Editor
 
 				m_EntriesLimit = Mathf.Max(0, EditorGUILayout.IntField("Limit Entries", m_EntriesLimit, GUILayout.ExpandWidth(false)));
 
+				GUI.backgroundColor = m_ShowDetails ? Color.green : prevBackgroundColor;
+				if (GUILayout.Button("Details", GUILayout.ExpandWidth(false))) {
+					m_ShowDetails = !m_ShowDetails;
+				}
+				GUI.backgroundColor = prevBackgroundColor;
+
 				GUILayout.FlexibleSpace();
 
 				float prevLabelWidth = EditorGUIUtility.labelWidth;
@@ -203,6 +210,63 @@ namespace DevLocker.Audio.Editor
 			}
 			EditorGUILayout.EndHorizontal();
 
+			if (m_ShowDetails) {
+				DrawDetailedView();
+			} else {
+				DrawSimpleView();
+			}
+		}
+
+		private void DrawSimpleView()
+		{
+			const float enumColumnWidth = 50f;
+			const float timeColumnWidth = 80f;
+			const float scrollViewMarginFix = 35f;
+			float objectFlexibleWidth = (position.width - timeColumnWidth - enumColumnWidth - scrollViewMarginFix) / 2f;
+
+			// Table Header
+			EditorGUILayout.BeginHorizontal();
+			{
+				GUILayout.Label("Action", HeaderStyle, GUILayout.Width(enumColumnWidth));
+				GUILayout.Label("Time", HeaderStyle, GUILayout.Width(timeColumnWidth));
+
+				GUILayout.Label("Player", HeaderStyle, GUILayout.ExpandWidth(true));
+				GUILayout.Label("Resource", HeaderStyle, GUILayout.ExpandWidth(true));
+			}
+			EditorGUILayout.EndHorizontal();
+
+			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
+
+#if UNITY_2023_2_OR_NEWER
+			var audioType = typeof(AudioResource);
+#else
+			var audioType = typeof(AudioClip);
+#endif
+			// Table Content
+			for (int i = m_Actions.Count - 1; i >= 0; i--) {
+				var action = m_Actions[i];
+
+				EditorGUILayout.BeginHorizontal();
+				{
+					GUILayout.Label(action.Type.ToString(), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
+					EditorGUILayout.FloatField(action.Time, GUILayout.Width(timeColumnWidth));
+
+					float objectMarginFix = 5;
+					//EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					//EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.ExpandWidth(true));
+					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.ExpandWidth(true));
+
+				}
+				EditorGUILayout.EndHorizontal();
+
+			}
+
+			EditorGUILayout.EndScrollView();
+		}
+
+		private void DrawDetailedView()
+		{
 			// NOTE: Tried doing it smarter, but ObjectField and Toggles don't accept styles, so no way to specify margins and format columns under header.
 			//		 Changing the EditorStyles didn't work out too. So I have to fake the margins manually. :(
 			//		 Other option is to use the Unity TreeView.
@@ -225,7 +289,7 @@ namespace DevLocker.Audio.Editor
 				GUILayout.Label("Template", HeaderStyle, GUILayout.Width(objectFlexibleWidth));
 
 				GUILayout.Label("Mute", HeaderStyle, GUILayout.Width(boolColumnWidth));
-				GUILayout.Label("Enable", HeaderStyle, GUILayout.Width(boolColumnWidth));
+				GUILayout.Label("Auto", HeaderStyle, GUILayout.Width(boolColumnWidth));
 
 				GUILayout.Label("Repeat", HeaderStyle, GUILayout.Width(enumColumnWidth + 4f));
 
