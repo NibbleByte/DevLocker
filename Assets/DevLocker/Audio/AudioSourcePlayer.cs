@@ -192,7 +192,7 @@ namespace DevLocker.Audio
 			m_ActivePlayersRegister.Add(this);
 
 			AudioSource.enabled = true;
-			if (PlayOnEnable) {
+			if (PlayOnEnable && AudioResource) {
 				Play();
 			}
 		}

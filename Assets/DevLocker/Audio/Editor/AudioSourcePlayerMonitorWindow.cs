@@ -42,6 +42,8 @@ namespace DevLocker.Audio.Editor
 			public float Volume;
 			public float Pitch;
 			public float SpatialBlend;
+
+			public float ListenerDistance;
 		}
 
 		private bool m_ListenForEvents = true;
@@ -54,6 +56,8 @@ namespace DevLocker.Audio.Editor
 		[NonSerialized] private GUIStyle HeaderStyle;
 
 		private Vector2 m_ScrollView;
+
+		private AudioListener m_AudioListener;
 
 		public static void ShowMonitor()
 		{
@@ -107,6 +111,10 @@ namespace DevLocker.Audio.Editor
 			if (!m_ListenForEvents)
 				return;
 
+			if (m_AudioListener == null || !m_AudioListener.isActiveAndEnabled) {
+				m_AudioListener = GameObject.FindAnyObjectByType<AudioListener>();
+			}
+
 			m_Actions.Add(new ActionEntry() {
 				Type = actionType,
 				Time = Time.time,
@@ -124,6 +132,7 @@ namespace DevLocker.Audio.Editor
 				Pitch = player.Pitch,
 				SpatialBlend = player.SpatialBlend,
 
+				ListenerDistance = m_AudioListener ? Vector3.Distance(m_AudioListener.transform.position, player.transform.position) : -1f,
 			});
 
 			if (m_Actions.Count > m_EntriesLimit) {
@@ -156,6 +165,7 @@ namespace DevLocker.Audio.Editor
 				Pitch = uiAudioEffects.AudioSource?.pitch ?? 1f,
 				SpatialBlend = uiAudioEffects.AudioSource?.spatialBlend ?? 0f,
 
+				ListenerDistance = -1f,
 			});
 
 			if (m_Actions.Count > m_EntriesLimit) {
@@ -189,17 +199,19 @@ namespace DevLocker.Audio.Editor
 
 				GUI.backgroundColor = prevBackgroundColor;
 
-				m_EntriesLimit = Mathf.Max(0, EditorGUILayout.IntField("Limit Entries", m_EntriesLimit, GUILayout.ExpandWidth(false)));
-
 				GUI.backgroundColor = m_ShowDetails ? Color.green : prevBackgroundColor;
 				if (GUILayout.Button("Details", GUILayout.ExpandWidth(false))) {
 					m_ShowDetails = !m_ShowDetails;
 				}
 				GUI.backgroundColor = prevBackgroundColor;
 
+				float prevLabelWidth = EditorGUIUtility.labelWidth;
+				EditorGUIUtility.labelWidth = 80f;
+				m_EntriesLimit = Mathf.Max(0, EditorGUILayout.IntField("Limit Entries", m_EntriesLimit, GUILayout.Width(112f)));
+				EditorGUIUtility.labelWidth = prevLabelWidth;
+
 				GUILayout.FlexibleSpace();
 
-				float prevLabelWidth = EditorGUIUtility.labelWidth;
 				EditorGUIUtility.labelWidth = 80f;
 				m_ClearOnPlay = EditorGUILayout.Toggle("Clear on play", m_ClearOnPlay);
 				EditorGUIUtility.labelWidth = prevLabelWidth;
@@ -228,10 +240,11 @@ namespace DevLocker.Audio.Editor
 			EditorGUILayout.BeginHorizontal();
 			{
 				GUILayout.Label("Action", HeaderStyle, GUILayout.Width(enumColumnWidth));
-				GUILayout.Label("Time", HeaderStyle, GUILayout.Width(timeColumnWidth));
+				GUILayout.Label("Time", HeaderStyle, GUILayout.MaxWidth(timeColumnWidth));
 
 				GUILayout.Label("Player", HeaderStyle, GUILayout.ExpandWidth(true));
 				GUILayout.Label("Resource", HeaderStyle, GUILayout.ExpandWidth(true));
+				GUILayout.Label("Distance", HeaderStyle, GUILayout.MaxWidth(timeColumnWidth));
 			}
 			EditorGUILayout.EndHorizontal();
 
@@ -249,9 +262,10 @@ namespace DevLocker.Audio.Editor
 				EditorGUILayout.BeginHorizontal();
 				{
 					GUILayout.Label(action.Type.ToString(), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
-					EditorGUILayout.FloatField(action.Time, GUILayout.Width(timeColumnWidth));
+					EditorGUILayout.FloatField(action.Time, GUILayout.MaxWidth(timeColumnWidth));
 					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.ExpandWidth(true));
 					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.ExpandWidth(true));
+					EditorGUILayout.FloatField(action.ListenerDistance, GUILayout.MaxWidth(timeColumnWidth));
 
 				}
 				EditorGUILayout.EndHorizontal();
