@@ -250,10 +250,6 @@ namespace DevLocker.Audio.Editor
 				{
 					GUILayout.Label(action.Type.ToString(), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
 					EditorGUILayout.FloatField(action.Time, GUILayout.Width(timeColumnWidth));
-
-					float objectMarginFix = 5;
-					//EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
-					//EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.ExpandWidth(true));
 					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.ExpandWidth(true));
 
