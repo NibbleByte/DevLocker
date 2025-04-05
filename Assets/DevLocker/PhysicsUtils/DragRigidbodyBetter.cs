@@ -96,10 +96,10 @@ namespace DevLocker.PhysicsUtils
 
 
 		private IEnumerator DragObject(float distance) {
-			var oldDrag = m_SpringJoint.connectedBody.drag;
-			var oldAngularDrag = m_SpringJoint.connectedBody.angularDrag;
-			m_SpringJoint.connectedBody.drag = Drag;
-			m_SpringJoint.connectedBody.angularDrag = AngularDrag;
+			var oldDrag = m_SpringJoint.connectedBody.linearDamping;
+			var oldAngularDrag = m_SpringJoint.connectedBody.angularDamping;
+			m_SpringJoint.connectedBody.linearDamping = Drag;
+			m_SpringJoint.connectedBody.angularDamping = AngularDrag;
 			var mainCamera = FindCamera();
 			while (Input.GetMouseButton(0) && !Input.GetKeyDown(KeyToPinSpring)) {
 				distance += Input.GetAxis("Mouse ScrollWheel") * ScrollWheelSensitivity;
@@ -122,8 +122,8 @@ namespace DevLocker.PhysicsUtils
 
 
 			if (m_SpringJoint.connectedBody) {
-				m_SpringJoint.connectedBody.drag = oldDrag;
-				m_SpringJoint.connectedBody.angularDrag = oldAngularDrag;
+				m_SpringJoint.connectedBody.linearDamping = oldDrag;
+				m_SpringJoint.connectedBody.angularDamping = oldAngularDrag;
 
 				if (Input.GetKeyDown(KeyToPinSpring)) {
 					m_SpringJoint = null;
