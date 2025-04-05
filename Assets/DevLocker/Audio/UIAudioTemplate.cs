@@ -1,4 +1,3 @@
-#if UNITY_2023_2_OR_NEWER
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -25,4 +24,3 @@ namespace DevLocker.Audio
 		public AudioResource DeselectAudio;
 	}
 }
-#endif

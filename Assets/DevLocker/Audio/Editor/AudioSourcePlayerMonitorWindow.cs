@@ -28,11 +28,7 @@ namespace DevLocker.Audio.Editor
 			public float Time;
 
 			public MonoBehaviour Player;
-#if UNITY_2023_2_OR_NEWER
 			public AudioResource Resource;
-#else
-			public AudioClip Resource;
-#endif
 			public AudioMixerGroup MixerGroup;
 			public AudioSource Template;
 
@@ -72,9 +68,7 @@ namespace DevLocker.Audio.Editor
 			AudioSourcePlayer.PlayPaused += OnPlayPaused;
 			AudioSourcePlayer.PlayUnpaused += OnPlayUnpaused;
 
-#if UNITY_2023_2_OR_NEWER
 			UIAudioEffects.PlayedAudio += OnUIAudioEffectsPlayed;
-#endif
 
 			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 		}
@@ -86,9 +80,7 @@ namespace DevLocker.Audio.Editor
 			AudioSourcePlayer.PlayPaused -= OnPlayPaused;
 			AudioSourcePlayer.PlayUnpaused -= OnPlayUnpaused;
 
-#if UNITY_2023_2_OR_NEWER
 			UIAudioEffects.PlayedAudio -= OnUIAudioEffectsPlayed;
-#endif
 		}
 
 		private void OnPlayModeStateChanged(PlayModeStateChange stateChange)
@@ -142,7 +134,6 @@ namespace DevLocker.Audio.Editor
 			Repaint();
 		}
 
-#if UNITY_2023_2_OR_NEWER
 		private void OnUIAudioEffectsPlayed(UIAudioEffects uiAudioEffects, AudioResource playedResource)
 		{
 			if (!m_ListenForEvents)
@@ -174,7 +165,6 @@ namespace DevLocker.Audio.Editor
 
 			Repaint();
 		}
-#endif
 
 		private void InitStyles()
 		{
@@ -250,11 +240,7 @@ namespace DevLocker.Audio.Editor
 
 			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
 
-#if UNITY_2023_2_OR_NEWER
 			var audioType = typeof(AudioResource);
-#else
-			var audioType = typeof(AudioClip);
-#endif
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
 				var action = m_Actions[i];
@@ -311,11 +297,7 @@ namespace DevLocker.Audio.Editor
 
 			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
 
-#if UNITY_2023_2_OR_NEWER
 			var audioType = typeof(AudioResource);
-#else
-			var audioType = typeof(AudioClip);
-#endif
 
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {

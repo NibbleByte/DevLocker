@@ -1,4 +1,3 @@
-#if UNITY_2023_2_OR_NEWER
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.EventSystems;
@@ -182,4 +181,3 @@ namespace DevLocker.Audio
 	}
 
 }
-#endif
