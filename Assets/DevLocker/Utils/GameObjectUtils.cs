@@ -137,6 +137,11 @@ namespace DevLocker.Utils
 
 		/// <summary>
 		/// Generate path suitable for use with Transform.Find() between root and node.
+		/// </summary>
+		public static string GetFindPath(Transform node) => GetFindPath(null, node);
+
+		/// <summary>
+		/// Generate path suitable for use with Transform.Find() between root and node.
 		/// Root can be null.
 		/// </summary>
 		public static string GetFindPath(Transform root, Transform node)
