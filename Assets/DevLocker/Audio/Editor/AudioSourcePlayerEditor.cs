@@ -25,20 +25,28 @@ namespace DevLocker.Audio.Editor
 
 			DrawScriptProperty();
 
-			EditorGUI.BeginChangeCheck();
-
 			var audioResourceProperty = serializedObject.FindProperty("m_AudioResource");
 			var audioAssetProperty = serializedObject.FindProperty("m_AudioAsset");
 
-			EditorGUI.BeginDisabledGroup(audioAssetProperty.objectReferenceValue);
+			EditorGUI.BeginChangeCheck();
 			EditorGUILayout.PropertyField(audioResourceProperty);
-			EditorGUI.EndDisabledGroup();
+			if (EditorGUI.EndChangeCheck()) {
+				audioAssetProperty.objectReferenceValue = null;
+				serializedObject.ApplyModifiedProperties();
+				serializedObject.Update();
+			}
 
-			EditorGUI.BeginDisabledGroup(audioResourceProperty.objectReferenceValue && audioAssetProperty.objectReferenceValue == null);
+			EditorGUI.BeginChangeCheck();
 			EditorGUILayout.PropertyField(audioAssetProperty);
-			EditorGUI.EndDisabledGroup();
+			if (EditorGUI.EndChangeCheck()) {
+				audioResourceProperty.objectReferenceValue = null;
+				serializedObject.ApplyModifiedProperties();
+				serializedObject.Update();
+			}
 
 			EditorGUILayout.Space();
+
+			EditorGUI.BeginChangeCheck();
 
 			var repeatPattern = (AudioSourcePlayer.RepeatPatternType)serializedObject.FindProperty("m_RepeatPattern").intValue;
 
@@ -80,8 +88,8 @@ namespace DevLocker.Audio.Editor
 
 			EditorGUILayout.EndHorizontal();
 
-			if (Application.isPlaying && player.ConductorContext != null) {
-				if (player.ConductorContext is IEnumerable<KeyValuePair<string, object>> enumerableContext) {
+			if (Application.isPlaying && player.ConductorsFilterContext != null) {
+				if (player.ConductorsFilterContext is IEnumerable<KeyValuePair<string, object>> enumerableContext) {
 					EditorGUILayout.LabelField("Context", EditorStyles.boldLabel);
 					EditorGUI.indentLevel++;
 

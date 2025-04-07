@@ -1,4 +1,3 @@
-using DevLocker.Utils;
 using System;
 using System.Collections;
 using System.Linq;
@@ -60,7 +59,7 @@ namespace DevLocker.Audio
 
 		void OnValidate()
 		{
-			SerializeReferenceValidation.ClearDuplicateReferences(this);
+			Utils.SerializeReferenceValidation.ClearDuplicateReferences(this);
 
 			foreach (var conductorBind in Conductors) {
 				conductorBind.Conductor?.OnValidate(this);
@@ -70,23 +69,6 @@ namespace DevLocker.Audio
 				}
 			}
 		}
-
-
-
-#if UNITY_EDITOR
-		// These are public so they can be inherited if needed.
-
-		[UnityEditor.CustomPropertyDrawer(typeof(AudioConductor))]
-		public class __AudioConductorDrawer : SerializeReferenceCreatorDrawer<AudioConductor>
-		{
-		}
-
-		[UnityEditor.CustomPropertyDrawer(typeof(AudioPredicate))]
-		public class __AudioPredicateDrawer : SerializeReferenceCreatorDrawer<AudioPredicate>
-		{
-		}
-#endif
-
 	}
 
 }

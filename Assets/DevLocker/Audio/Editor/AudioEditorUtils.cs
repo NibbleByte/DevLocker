@@ -1,10 +1,15 @@
 // from RTyper forum post that hooks up unitys AudioUtil library
 
 using System;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+
+#if UNITY_2023_2_OR_NEWER
+using UnityEngine.Audio;
+#endif
 
 namespace DevLocker.Audio.Editor
 {
@@ -14,20 +19,51 @@ namespace DevLocker.Audio.Editor
 	/// </summary>
 	public static class AudioEditorUtils
 	{
-		private static object ExecuteAudioUtilMethod(string methodName, params object[] args)
-		{
-			Assembly unityEditorAssembly = typeof(AudioImporter).Assembly;
-			Type audioUtilClass = unityEditorAssembly.GetType("UnityEditor.AudioUtil");
-			Type[] paramTypes = args.Select(a => a.GetType()).ToArray();
-			MethodInfo method = audioUtilClass.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public, null, paramTypes, null);
+		private static GUIStyle s_PlayStopButtonStyle;
+		private static GUIContent s_PlayIconContent;
+		private static GUIContent s_StopIconContent;
 
-			return method.Invoke(null, args);
+		public static GUIStyle PlayStopButtonStyle {
+			get {
+				if (s_PlayStopButtonStyle == null) {
+					s_PlayStopButtonStyle = new GUIStyle(EditorStyles.miniButton);
+					s_PlayStopButtonStyle.padding = new RectOffset();
+					s_PlayStopButtonStyle.margin = new RectOffset();
+				}
+				return s_PlayStopButtonStyle;
+			}
 		}
+
+		public static GUIContent PlayIconContent => s_PlayIconContent ?? (s_PlayIconContent = new GUIContent(EditorGUIUtility.FindTexture("PlayButton"), "Play the sound"));
+		public static GUIContent StopIconContent => s_StopIconContent ?? (new GUIContent(EditorGUIUtility.FindTexture("PreMatQuad"), "Stop the playing sound"));
 
 		// Play AudioClip in the editor (without AudioSource and GameObject).
 		public static void PlayPreviewClip(AudioClip clip , int startSample = 0 , bool loop = false) {
 			ExecuteAudioUtilMethod("PlayPreviewClip", clip, startSample, loop);
 		}
+
+#if UNITY_2023_2_OR_NEWER
+		// Play AudioClip in the editor (without AudioSource and GameObject).
+		public static void PlayPreviewClip(AudioResource resource , int startSample = 0 , bool loop = false) {
+			if (resource is AudioClip clip) {
+				PlayPreviewClip(clip, startSample, loop);
+
+			} else {
+				// NOTE: This is still very fresh API and may change in the near future.
+				// Assume AudioRandomContainer type, which is internal.
+				var elementsField = resource.GetType().GetProperty("elements", BindingFlags.NonPublic | BindingFlags.Instance);
+				var elements = elementsField?.GetValue(resource) as IList;
+				if (elements != null && elements.Count > 0) {
+					var element = elements[UnityEngine.Random.Range(0, elements.Count)];
+					var elementField = element.GetType().GetProperty("audioClip", BindingFlags.NonPublic | BindingFlags.Instance);
+					clip = elementField?.GetValue(element) as AudioClip;
+					if (clip != null) {
+						PlayPreviewClip(clip, startSample, loop);
+					}
+				}
+			}
+		}
+#endif
 
 		public static void PausePreviewClip() {
 			ExecuteAudioUtilMethod("PausePreviewClip");
@@ -111,6 +147,16 @@ namespace DevLocker.Audio.Editor
 
 		public static double GetDuration(AudioClip clip) {
 			return (double) ExecuteAudioUtilMethod("GetDuration", clip);
+		}
+
+		private static object ExecuteAudioUtilMethod(string methodName, params object[] args)
+		{
+			Assembly unityEditorAssembly = typeof(AudioImporter).Assembly;
+			Type audioUtilClass = unityEditorAssembly.GetType("UnityEditor.AudioUtil");
+			Type[] paramTypes = args.Select(a => a.GetType()).ToArray();
+			MethodInfo method = audioUtilClass.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public, null, paramTypes, null);
+
+			return method.Invoke(null, args);
 		}
 	}
 

@@ -37,7 +37,7 @@ namespace DevLocker.Utils
 	/// <typeparam name="T">Class type to be drawn.</typeparam>
 	public class SerializeReferenceCreatorDrawer<T> : PropertyDrawer
 	{
-		protected const float ReferenceButtonWidth = 60f;
+		protected const float s_ClearReferenceButtonWidth = 60f;
 
 		protected GUIStyle m_TypeLabelStyle;
 
@@ -67,8 +67,8 @@ namespace DevLocker.Utils
 			}
 
 			var buttonRect = position;
-			buttonRect.x += buttonRect.width - ReferenceButtonWidth;
-			buttonRect.width = ReferenceButtonWidth;
+			buttonRect.x += buttonRect.width - s_ClearReferenceButtonWidth;
+			buttonRect.width = s_ClearReferenceButtonWidth;
 			buttonRect.height = EditorGUIUtility.singleLineHeight;
 
 			bool isReferenceEmpty = string.IsNullOrEmpty(property.managedReferenceFullTypename);
@@ -134,21 +134,38 @@ namespace DevLocker.Utils
 		protected virtual void OnGUI_Custom(Rect position, SerializedProperty property, GUIContent label, bool isManagedReference)
 		{
 			if (isManagedReference) {
+				var barRect = position;
+				barRect.height = EditorGUIUtility.singleLineHeight;
 
-				var buttonRect = position;
-				buttonRect.x += buttonRect.width - ReferenceButtonWidth;
-				buttonRect.width = ReferenceButtonWidth;
-				buttonRect.height = EditorGUIUtility.singleLineHeight;
-
-				var typeLabelRect = position;
-				typeLabelRect.width -= ReferenceButtonWidth;
-				typeLabelRect.height = EditorGUIUtility.singleLineHeight;
-
-				DrawManagedTypeLabel(typeLabelRect, property, Color.white * 0.8f);
-
-				DrawClearButton(buttonRect, property, Color.red, "Clear");
+				OnGUI_CustomReferenceBar(barRect, property);
 			}
 
+			OnGUI_CustomData(position, property, label);
+		}
+
+		/// <summary>
+		/// Override this to change how the header bar with reference controls looks like.
+		/// NOTE: To have a clear button, make sure you call <see cref="DrawClearButton(SerializedProperty, Rect, Color, string)"/>!
+		/// </summary>
+		protected virtual void OnGUI_CustomReferenceBar(Rect barRect, SerializedProperty property)
+		{
+			var clearButtonRect = barRect;
+			clearButtonRect.x += clearButtonRect.width - s_ClearReferenceButtonWidth;
+			clearButtonRect.width = s_ClearReferenceButtonWidth;
+
+			var typeLabelRect = barRect;
+			typeLabelRect.width -= s_ClearReferenceButtonWidth;
+
+			DrawManagedTypeLabel(typeLabelRect, property, Color.white * 0.8f);
+
+			DrawClearButton(clearButtonRect, property, Color.red, "Clear");
+		}
+
+		/// <summary>
+		/// Override this to change how the referenced object looks like.
+		/// </summary>
+		protected virtual void OnGUI_CustomData(Rect position, SerializedProperty property, GUIContent label)
+		{
 			//label = EditorGUI.BeginProperty(position, label, property);
 			//EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 

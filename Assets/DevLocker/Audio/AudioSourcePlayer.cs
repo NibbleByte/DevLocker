@@ -59,7 +59,23 @@ namespace DevLocker.Audio
 			}
 		}
 
-		public object ConductorContext;
+		/// <summary>
+		/// Object used by <see cref="AudioPlayerAsset"/> filters as context.
+		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
+		/// </summary>
+		public object ConductorsFilterContext;
+
+		/// <summary>
+		/// Used by conductors to persist data per player between usages. For example: don't repeat last clip.
+		/// Try to use unique key names.
+		/// </summary>
+		public Dictionary<string, object> ConductorsStorage = new Dictionary<string, object>();
+
+		/// <summary>
+		/// Used by conductors to persist data between usages globally. For example: don't repeat last clip.
+		/// Try to use unique key names.
+		/// </summary>
+		public static Dictionary<string, object> GlobalConductorsStorage = new Dictionary<string, object>();
 
 		public AudioMixerGroup Output {
 			get => m_Output;
@@ -198,6 +214,12 @@ namespace DevLocker.Audio
 		private float m_NextPlayTime;
 		private bool m_LastIsPlaying;
 		private bool m_ShouldPlayRepeating;
+
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+		private static void ClearStaticsCache()
+		{
+			GlobalConductorsStorage = new Dictionary<string, object>();
+		}
 
 		protected virtual void OnEnable()
 		{
@@ -429,6 +451,34 @@ namespace DevLocker.Audio
 			}
 		}
 
+		public T GetConductorsStorageValue<T>(string keyName, T defaultValue)
+		{
+			if (ConductorsStorage.TryGetValue(keyName, out object objValue) && objValue is T value) {
+				return value;
+			} else {
+				return defaultValue;
+			}
+		}
+
+		public void SetConductorsStorageValue(string keyName, object value)
+		{
+			ConductorsStorage[keyName] = value;
+		}
+
+		public static T GetGlobalConductorsStorageValue<T>(string keyName, T defaultValue)
+		{
+			if (GlobalConductorsStorage.TryGetValue(keyName, out object objValue) && objValue is T value) {
+				return value;
+			} else {
+				return defaultValue;
+			}
+		}
+
+		public static void SetGlobalConductorsStorageValue(string keyName, object value)
+		{
+			GlobalConductorsStorage[keyName] = value;
+		}
+
 		private IEnumerator StartAudioAsset(AudioPlayerAsset audioAsset, float delay)
 		{
 			if (delay > 0f) {
@@ -442,7 +492,7 @@ namespace DevLocker.Audio
 				}
 			}
 
-			yield return audioAsset.Play(this, ConductorContext);
+			yield return audioAsset.Play(this, ConductorsFilterContext);
 		}
 
 		private void StopVolumeCrt()

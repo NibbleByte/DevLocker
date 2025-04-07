@@ -1,10 +1,6 @@
 using System.Linq;
 using UnityEngine;
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
 namespace DevLocker.Audio
 {
 	/// <summary>
@@ -112,30 +108,4 @@ namespace DevLocker.Audio
 			}
 		}
 	}
-
-#if UNITY_EDITOR
-	[CustomEditor(typeof(AudioSourceIsolateAndFollow))]
-	[CanEditMultipleObjects]
-	internal class AudioSourceIsolateAndFollowEditor : Editor
-	{
-		public override void OnInspectorGUI()
-		{
-			serializedObject.Update();
-
-			DrawDefaultInspector();
-
-			EditorGUILayout.Space();
-
-			if (Application.isPlaying) {
-				EditorGUI.BeginDisabledGroup(true);
-				foreach(var t in targets.OfType<AudioSourceIsolateAndFollow>()) {
-					if (t != null) {
-						EditorGUILayout.ObjectField(t.Link, typeof(AudioSourceIsolateAndFollow), true);
-					}
-				}
-				EditorGUI.EndDisabledGroup();
-			}
-		}
-	}
-#endif
 }
