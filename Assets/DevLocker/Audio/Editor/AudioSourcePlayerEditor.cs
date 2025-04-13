@@ -11,6 +11,7 @@ namespace DevLocker.Audio.Editor
 	public class AudioSourcePlayerEditor : UnityEditor.Editor
 	{
 		private Vector2 m_ContextScrollPos;
+		private bool m_ContextFolded = false;
 
 		protected void DrawScriptProperty()
 		{
@@ -90,16 +91,19 @@ namespace DevLocker.Audio.Editor
 
 			if (Application.isPlaying && player.ConductorsFilterContext != null) {
 				if (player.ConductorsFilterContext is IEnumerable<KeyValuePair<string, object>> enumerableContext) {
-					EditorGUILayout.LabelField("Context", EditorStyles.boldLabel);
-					EditorGUI.indentLevel++;
 
-					m_ContextScrollPos = EditorGUILayout.BeginScrollView(m_ContextScrollPos, EditorStyles.helpBox, GUILayout.MaxHeight(100f));
-					foreach(var pair in enumerableContext) {
-						DrawPair(pair.Key, pair.Value);
+					m_ContextFolded = EditorGUILayout.Foldout(m_ContextFolded, "Context Values", toggleOnLabelClick: true);
+					if (m_ContextFolded) {
+						EditorGUI.indentLevel++;
+
+						m_ContextScrollPos = EditorGUILayout.BeginScrollView(m_ContextScrollPos, EditorStyles.helpBox);
+						foreach (var pair in enumerableContext) {
+							DrawPair(pair.Key, pair.Value);
+						}
+						EditorGUILayout.EndScrollView();
+
+						EditorGUI.indentLevel--;
 					}
-					EditorGUILayout.EndScrollView();
-
-					EditorGUI.indentLevel--;
 				}
 			}
 		}

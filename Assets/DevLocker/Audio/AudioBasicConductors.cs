@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -14,9 +15,8 @@ namespace DevLocker.Audio.Conductors
 
 		public override IEnumerator Play(AudioSourcePlayer player)
 		{
-			player.AudioResource = AudioResource;
 			player.Volume = Volume;
-			player.Play();
+			player.PlayDirectResource(AudioResource);
 
 			yield break;
 		}
@@ -36,9 +36,8 @@ namespace DevLocker.Audio.Conductors
 
 		public override IEnumerator Play(AudioSourcePlayer player)
 		{
-			player.AudioResource = AudioResource;
 			player.Volume = Volume;
-			player.Play();
+			player.PlayDirectResource(AudioResource);
 
 			if (VisualEffectsPrefab) {
 				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
@@ -62,9 +61,9 @@ namespace DevLocker.Audio.Conductors
 
 		public override IEnumerator Play(AudioSourcePlayer player)
 		{
-			player.AudioSource.PlayOneShot(Intro);
+			player.PlayDirectClip(Intro, playAsOneShot: true);
 
-			player.AudioResource = Looped;
+			player.AudioSource.resource = Looped;
 			player.Loop = true;
 
 			double introLengthDouble = (double)Intro.samples / (double)Intro.frequency; // This is more accurate than clip.float.
@@ -150,7 +149,7 @@ namespace DevLocker.Audio.Conductors
 				;
 
 			player.Volume = Volume;
-			player.AudioSource.PlayOneShot(AudioClip);
+			player.PlayDirectClip(AudioClip, playAsOneShot: true);
 
 			pitchIndex = ResetOnSequenceEnd
 				? (pitchIndex + 1) % PitchSequence.Length
@@ -169,6 +168,56 @@ namespace DevLocker.Audio.Conductors
 				return;
 
 			player.SetConductorsStorageValue(PitchIndex_StorageKey, 0);
+		}
+	}
+
+	/// <summary>
+	/// Play multiple sounds in a sequence, each one overlapping the last a bit.
+	/// Helps create continues loop that doesn't feel like one.
+	/// </summary>
+	public class LoopSequenceOverlappingConductor : AudioPlayerAsset.AudioConductor
+	{
+		public AudioClip[] Clips;
+
+		[Range(0f, 1f)]
+		public float Volume = 1.0f;
+
+		[Tooltip("How much time should the sequence be looped? Set to -1 to loop endlessly.")]
+		public float Duration = -1f;
+		public float Overlap = 0.1f;
+		public bool RandomizeSequence = false;
+
+		public override IEnumerator Play(AudioSourcePlayer player)
+		{
+			AudioClip clip = Clips.First();
+
+			float startTime = float.MinValue;   // Fake it to start immediately.
+			float totalPlayTime = 0f;
+
+			while (true) {
+
+				if (player.IsPaused)
+					yield return null;
+
+				totalPlayTime += Time.deltaTime;
+				if (Duration >= 0f && totalPlayTime > Duration)
+					yield break;	// The last clip will continue playing as OneShot.
+
+				if (Time.time - startTime > clip.length - Overlap) {
+					int nextIndex = RandomizeSequence
+						? UnityEngine.Random.Range(0, Clips.Length)
+						: (Array.IndexOf(Clips, clip) + 1) % Clips.Length;
+						;
+
+					clip = Clips[nextIndex];
+
+					startTime = Time.time;
+
+					player.PlayDirectClip(clip, playAsOneShot: true);
+				}
+
+				yield return null;
+			}
 		}
 	}
 

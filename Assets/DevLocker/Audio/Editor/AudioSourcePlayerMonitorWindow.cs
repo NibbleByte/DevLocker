@@ -15,10 +15,10 @@ namespace DevLocker.Audio.Editor
 	{
 		private enum ActionType
 		{
-			Play,
-			Stop,
-			Pause,
-			UnPause,
+			Play = 1 << 0,
+			Stop = 1 << 1,
+			Pause = 1 << 2,
+			UnPause = 1 << 3,
 		}
 
 		[Serializable]
@@ -44,12 +44,16 @@ namespace DevLocker.Audio.Editor
 
 		private bool m_ListenForEvents = true;
 		private bool m_ClearOnPlay = true;
+		private bool m_LogActions = false;
 		private int m_EntriesLimit = 100;
 		private bool m_ShowDetails = false;
+
+		private ActionType m_ActionDisplayFilter = (ActionType)~0;
 
 		private List<ActionEntry> m_Actions = new List<ActionEntry>();
 
 		[NonSerialized] private GUIStyle HeaderStyle;
+		[NonSerialized] private static GUIStyle HeaderUrlStyle;
 
 		private Vector2 m_ScrollView;
 
@@ -58,7 +62,7 @@ namespace DevLocker.Audio.Editor
 		public static void ShowMonitor()
 		{
 			var window = GetWindow<AudioSourcePlayerMonitorWindow>(false, "Audio Monitor");
-			window.minSize = new Vector2(750f, 200f);
+			window.minSize = new Vector2(400f, 200f);
 		}
 
 		void OnEnable()
@@ -107,12 +111,12 @@ namespace DevLocker.Audio.Editor
 				m_AudioListener = GameObject.FindAnyObjectByType<AudioListener>();
 			}
 
-			m_Actions.Add(new ActionEntry() {
+			var action = new ActionEntry() {
 				Type = actionType,
 				Time = Time.time,
 
 				Player = player,
-				Resource = player.AudioResource,
+				Resource = player.AudioResource ?? player.AudioSource?.resource,
 				MixerGroup = player.Output,
 				Template = player.Template,
 
@@ -125,7 +129,13 @@ namespace DevLocker.Audio.Editor
 				SpatialBlend = player.SpatialBlend,
 
 				ListenerDistance = m_AudioListener ? Vector3.Distance(m_AudioListener.transform.position, player.transform.position) : -1f,
-			});
+			};
+
+			m_Actions.Add(action);
+
+			if (m_LogActions) {
+				LogAction(action);
+			}
 
 			if (m_Actions.Count > m_EntriesLimit) {
 				m_Actions.RemoveAt(0);
@@ -139,7 +149,7 @@ namespace DevLocker.Audio.Editor
 			if (!m_ListenForEvents)
 				return;
 
-			m_Actions.Add(new ActionEntry() {
+			var action = new ActionEntry() {
 				Type = ActionType.Play,
 				Time = Time.time,
 
@@ -157,7 +167,13 @@ namespace DevLocker.Audio.Editor
 				SpatialBlend = uiAudioEffects.AudioSource?.spatialBlend ?? 0f,
 
 				ListenerDistance = -1f,
-			});
+			};
+
+			m_Actions.Add(action);
+
+			if (m_LogActions) {
+				LogAction(action);
+			}
 
 			if (m_Actions.Count > m_EntriesLimit) {
 				m_Actions.RemoveAt(0);
@@ -170,6 +186,13 @@ namespace DevLocker.Audio.Editor
 		{
 			HeaderStyle = new GUIStyle(EditorStyles.toolbar);
 			HeaderStyle.alignment = TextAnchor.LowerCenter;
+
+			HeaderUrlStyle = new GUIStyle(EditorStyles.toolbar);
+			HeaderUrlStyle.normal.textColor = EditorGUIUtility.isProSkin ? new Color(1.00f, 0.65f, 0.00f) : Color.blue;
+			HeaderUrlStyle.hover.textColor = HeaderUrlStyle.normal.textColor;
+			HeaderUrlStyle.active.textColor = Color.red;
+			HeaderUrlStyle.alignment = TextAnchor.LowerCenter;
+
 		}
 
 		void OnGUI()
@@ -202,6 +225,10 @@ namespace DevLocker.Audio.Editor
 
 				GUILayout.FlexibleSpace();
 
+				EditorGUIUtility.labelWidth = 25f;
+				m_LogActions = EditorGUILayout.Toggle(new GUIContent("Log", "Print all incoming events in the Unity Console Log.\nUseful way to find out who is starting a sound by checking the callstack."), m_LogActions);
+				EditorGUIUtility.labelWidth = prevLabelWidth;
+
 				EditorGUIUtility.labelWidth = 80f;
 				m_ClearOnPlay = EditorGUILayout.Toggle("Clear on play", m_ClearOnPlay);
 				EditorGUIUtility.labelWidth = prevLabelWidth;
@@ -223,13 +250,11 @@ namespace DevLocker.Audio.Editor
 		{
 			const float enumColumnWidth = 50f;
 			const float timeColumnWidth = 80f;
-			const float scrollViewMarginFix = 35f;
-			float objectFlexibleWidth = (position.width - timeColumnWidth - enumColumnWidth - scrollViewMarginFix) / 2f;
 
 			// Table Header
 			EditorGUILayout.BeginHorizontal();
 			{
-				GUILayout.Label("Action", HeaderStyle, GUILayout.Width(enumColumnWidth));
+				if (GUILayout.Button("Action", HeaderUrlStyle, GUILayout.Width(enumColumnWidth))) PopActionFilterMenu();
 				GUILayout.Label("Time", HeaderStyle, GUILayout.MaxWidth(timeColumnWidth));
 
 				GUILayout.Label("Player", HeaderStyle, GUILayout.ExpandWidth(true));
@@ -244,6 +269,9 @@ namespace DevLocker.Audio.Editor
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
 				var action = m_Actions[i];
+
+				if (!m_ActionDisplayFilter.HasFlag(action.Type))
+					continue;
 
 				EditorGUILayout.BeginHorizontal();
 				{
@@ -276,7 +304,7 @@ namespace DevLocker.Audio.Editor
 			// Table Header
 			EditorGUILayout.BeginHorizontal();
 			{
-				GUILayout.Label("Action", HeaderStyle, GUILayout.Width(enumColumnWidth));
+				if (GUILayout.Button("Action", HeaderUrlStyle, GUILayout.Width(enumColumnWidth))) PopActionFilterMenu();
 				GUILayout.Label("Time", HeaderStyle, GUILayout.Width(timeColumnWidth));
 
 				GUILayout.Label("Player", HeaderStyle, GUILayout.Width(objectFlexibleWidth));
@@ -302,6 +330,9 @@ namespace DevLocker.Audio.Editor
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
 				var action = m_Actions[i];
+
+				if (!m_ActionDisplayFilter.HasFlag(action.Type))
+					continue;
 
 				EditorGUILayout.BeginHorizontal();
 				{
@@ -332,6 +363,24 @@ namespace DevLocker.Audio.Editor
 			}
 
 			EditorGUILayout.EndScrollView();
+		}
+
+		private void PopActionFilterMenu()
+		{
+			var menu = new GenericMenu();
+
+			foreach(ActionType enumValue in Enum.GetValues(typeof(ActionType))) {
+				menu.AddItem(new GUIContent(ObjectNames.NicifyVariableName(enumValue.ToString())), m_ActionDisplayFilter.HasFlag(enumValue), () => {
+					m_ActionDisplayFilter = m_ActionDisplayFilter ^ enumValue;
+				});
+			}
+
+			menu.ShowAsContext();
+		}
+
+		private void LogAction(ActionEntry action)
+		{
+			Debug.Log($"Audio Event: \"{action.Resource?.name}\" from \"{action.Player?.name}\" at {action.Time:0.0000} {action.Type}");
 		}
 	}
 

@@ -34,14 +34,16 @@ namespace DevLocker.Audio
 		public static event PlayerEventHandler PlayUnpaused;
 		public static event PlayerEventHandler PlayStopped;
 
+		/// <summary>
+		/// Sets or gets resource to the audio source.
+		/// NOTE: Don't use from conductors!!! Use <see cref="PlayDirectResource(AudioResource)"/> instead.
+		/// </summary>
 		public AudioResource AudioResource {
 			get => m_AudioResource;
 			set {
 
-				// Conductor may be setting audio resource to be played.
-				if (!IsPlayingOrPaused) {
-					m_AudioAsset = null;
-				}
+				// NOTE: Don't use from conductors!!!
+				m_AudioAsset = null;
 				m_AudioResource = value;
 
 				if (m_AudioSource) m_AudioSource.resource = value;
@@ -236,6 +238,8 @@ namespace DevLocker.Audio
 			m_ActivePlayersRegister.Remove(this);
 
 			AudioSource.enabled = false;
+
+			m_ConductorCoroutine = null;
 		}
 
 		protected virtual void OnValidate()
@@ -270,7 +274,7 @@ namespace DevLocker.Audio
 #endif
 		}
 
-		public bool IsPlaying => m_AudioSource && (m_AudioSource.isPlaying || (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval));
+		public bool IsPlaying => m_AudioSource && (m_AudioSource.isPlaying || (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval) || m_ConductorCoroutine != null);
 		public bool IsPaused { get; private set; }
 
 		// IsPlaying is false when paused.
@@ -329,6 +333,42 @@ namespace DevLocker.Audio
 
 			PlayStarted?.Invoke(this);
 #endif
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectClip(AudioClip clip, bool playAsOneShot)
+		{
+			if (AudioSource == null)
+				return;
+			if (clip == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.clip = clip;
+			if (playAsOneShot) {
+				AudioSource.PlayOneShot(clip);
+			} else {
+				AudioSource.Play();
+			}
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectResource(AudioResource resource)
+		{
+			if (AudioSource == null)
+				return;
+			if (resource == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.resource = resource;
+			AudioSource.Play();
 		}
 
 		[ContextMenu("Stop")]
@@ -493,6 +533,9 @@ namespace DevLocker.Audio
 			}
 
 			yield return audioAsset.Play(this, ConductorsFilterContext);
+
+			// Signal that conductor finished playing (which doesn't mean the audio finished).
+			m_ConductorCoroutine = null;
 		}
 
 		private void StopVolumeCrt()

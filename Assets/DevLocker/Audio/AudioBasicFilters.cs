@@ -242,6 +242,49 @@ namespace DevLocker.Audio.Conductors
 	/// </summary>
 	public class DictionaryContext : Dictionary<string, object>, IValuesContainer
 	{
+		#region Helpers
+
+		public static DictionaryContext Create(string key1, object value1) => new DictionaryContext {
+			{ key1, value1 }
+		};
+
+		public static DictionaryContext Create(string key1, object value1, string key2, object value2) => new DictionaryContext {
+			{ key1, value1 },
+			{ key2, value2 },
+		};
+
+		public static DictionaryContext Create(string key1, object value1, string key2, object value2, string key3, object value3) => new DictionaryContext {
+			{ key1, value1 },
+			{ key2, value2 },
+			{ key3, value3 },
+		};
+
+		public static DictionaryContext Create(string key1, object value1, string key2, object value2, string key3, object value3, string key4, object value4) => new DictionaryContext {
+			{ key1, value1 },
+			{ key2, value2 },
+			{ key3, value3 },
+			{ key4, value4 },
+		};
+
+		public static DictionaryContext Create(string key1, object value1, string key2, object value2, string key3, object value3, string key4, object value4, string key5, object value5) => new DictionaryContext {
+			{ key1, value1 },
+			{ key2, value2 },
+			{ key3, value3 },
+			{ key4, value4 },
+			{ key5, value5 },
+		};
+
+		public static DictionaryContext Create(string key1, object value1, string key2, object value2, string key3, object value3, string key4, object value4, string key5, object value5, string key6, object value6) => new DictionaryContext {
+			{ key1, value1 },
+			{ key2, value2 },
+			{ key3, value3 },
+			{ key4, value4 },
+			{ key5, value5 },
+			{ key6, value6 },
+		};
+
+		#endregion
+
 	}
 
 	public static class ValuesContainerExtensions
