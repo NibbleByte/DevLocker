@@ -4,6 +4,40 @@ using UnityEngine;
 
 namespace DevLocker.Audio.Editor
 {
+	[CustomEditor(typeof(AudioPlayerAsset))]
+	[CanEditMultipleObjects]
+	public class AudioPlayerAssetEditor : UnityEditor.Editor
+	{
+		protected void DrawScriptProperty()
+		{
+			EditorGUI.BeginDisabledGroup(true);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Script"));
+			EditorGUI.EndDisabledGroup();
+		}
+
+		public override void OnInspectorGUI()
+		{
+			serializedObject.Update();
+
+			DrawScriptProperty();
+
+			EditorGUI.BeginChangeCheck();
+
+			var loopRepeatProperty = serializedObject.FindProperty(nameof(AudioPlayerAsset.LoopRepeat));
+
+			// Will draw any child properties without [HideInInspector] attribute.
+			if (loopRepeatProperty.boolValue) {
+				DrawPropertiesExcluding(serializedObject, "m_Script");
+			} else {
+				DrawPropertiesExcluding(serializedObject, "m_Script", nameof(AudioPlayerAsset.RepeatIntervalRange));
+			}
+
+			if (EditorGUI.EndChangeCheck()) {
+				serializedObject.ApplyModifiedProperties();
+			}
+		}
+	}
+
 	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioPredicate))]
 	public class AudioPredicateDrawer : SerializeReferenceCreatorDrawer
 	{

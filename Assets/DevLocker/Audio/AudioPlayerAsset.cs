@@ -90,6 +90,11 @@ namespace DevLocker.Audio
 		[Tooltip("Where to store conductors state (if any)?\nExample: should screams shuffle per character or per asset?")]
 		public ConductorsStateStorageLocation StateStorageLocation;
 
+		[Tooltip("Should it loop this audio asset (ignores the player settings)?")]
+		public bool LoopRepeat;
+		[Tooltip("Random interval to repeatedly play the audio asset.")]
+		public AudioSourcePlayer.IntervalRange RepeatIntervalRange;
+
 		public AudioConductorBind[] Conductors;
 
 		/// <summary>
@@ -101,15 +106,33 @@ namespace DevLocker.Audio
 
 		public IEnumerator Play(AudioSourcePlayer player, object context)
 		{
-			var conductorBind = Conductors.FirstOrDefault(bind => bind.Filters.All(f => f?.IsAllowed(context, player, this) ?? true));
-			if (conductorBind.Conductor != null) {
-				yield return conductorBind.Conductor.Play(player, this);
-			}
+			do {
+				var conductorBind = Conductors.FirstOrDefault(bind => bind.Filters.All(f => f?.IsAllowed(context, player, this) ?? true));
+				if (conductorBind.Conductor != null) {
+					yield return conductorBind.Conductor.Play(player, this);
+				}
+
+				if (LoopRepeat) {
+					float waitTime = RepeatIntervalRange.NextValue();
+					float passedTime = 0.0f;
+
+					while(passedTime <= waitTime && LoopRepeat) {
+						yield return null;
+
+						if (!player.IsPaused && !player.AudioSource.isPlaying) {
+							passedTime += Time.deltaTime;
+						}
+					}
+				}
+
+			} while (LoopRepeat);
 		}
 
 		void OnValidate()
 		{
 			Utils.SerializeReferenceValidation.ClearDuplicateReferences(this);
+
+			RepeatIntervalRange.OnValidate(this);
 
 			foreach (var conductorBind in Conductors) {
 				conductorBind.Conductor?.OnValidate(this);

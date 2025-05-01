@@ -6,6 +6,37 @@ using System.Collections.Generic;
 
 namespace DevLocker.Audio.Editor
 {
+	[CustomPropertyDrawer(typeof(AudioSourcePlayer.IntervalRange))]
+	public class IntervalRangeDrawer : PropertyDrawer
+	{
+		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+		{
+			return EditorGUIUtility.singleLineHeight;
+		}
+
+		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+		{
+			label = EditorGUI.BeginProperty(position, label, property);
+
+			position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+
+			float padding = 6f;
+			Rect minValue = position;
+			minValue.width = position.width / 2 - padding;
+
+			Rect maxValue = position;
+			maxValue.width = position.width / 2;
+			maxValue.x += position.width / 2;
+			float oldLabelWidth = EditorGUIUtility.labelWidth;
+			EditorGUIUtility.labelWidth = 30f;
+			EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.IntervalRange.MinSeconds)), new GUIContent("Min"));
+			EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.IntervalRange.MaxSeconds)), new GUIContent("Max"));
+			EditorGUIUtility.labelWidth = oldLabelWidth;
+
+			EditorGUI.EndProperty();
+		}
+	}
+
 	[CustomEditor(typeof(AudioSourcePlayer), true)]
 	[CanEditMultipleObjects]
 	public class AudioSourcePlayerEditor : UnityEditor.Editor

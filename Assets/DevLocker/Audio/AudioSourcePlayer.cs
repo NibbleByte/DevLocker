@@ -25,6 +25,23 @@ namespace DevLocker.Audio
 		{
 			public float MinSeconds;
 			public float MaxSeconds;
+
+			public float NextValue() => UnityEngine.Random.Range(MinSeconds, MaxSeconds);
+
+			public void OnValidate(UnityEngine.Object context)
+			{
+#if UNITY_EDITOR
+				if (MinSeconds < 0f) {
+					MinSeconds = 0f;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+
+				if (MaxSeconds < MinSeconds) {
+					MaxSeconds = MinSeconds;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+#endif
+			}
 		}
 
 		public delegate void PlayerEventHandler(AudioSourcePlayer player);
@@ -121,7 +138,7 @@ namespace DevLocker.Audio
 				if (m_AudioSource) m_AudioSource.loop = value == RepeatPatternType.Loop;
 				if (value == RepeatPatternType.RepeatInterval) {
 					m_NextPlayTime = Time.time;
-					m_LastIsPlaying = IsPlaying;
+					m_LastIsPlayingForRepeatInterval = m_ConductorCoroutine != null || (m_AudioSource?.isPlaying ?? false);
 				}
 			}
 		}
@@ -209,7 +226,7 @@ namespace DevLocker.Audio
 		private Coroutine m_ConductorCoroutine;
 
 		private float m_NextPlayTime;
-		private bool m_LastIsPlaying;
+		private bool m_LastIsPlayingForRepeatInterval;
 		private bool m_ShouldPlayRepeating;
 
 		public static AudioSourcePlayer Quick2DPlayer;
@@ -249,15 +266,7 @@ namespace DevLocker.Audio
 				UnityEditor.EditorUtility.SetDirty(this);
 			}
 
-			if (m_RepeatIntervalRange.MinSeconds < 0f) {
-				m_RepeatIntervalRange.MinSeconds = 0f;
-				UnityEditor.EditorUtility.SetDirty(this);
-			}
-
-			if (m_RepeatIntervalRange.MaxSeconds < m_RepeatIntervalRange.MinSeconds) {
-				m_RepeatIntervalRange.MaxSeconds = m_RepeatIntervalRange.MinSeconds;
-				UnityEditor.EditorUtility.SetDirty(this);
-			}
+			m_RepeatIntervalRange.OnValidate(this);
 
 			if (Application.isPlaying && m_AudioSource) {
 				if (m_AudioSource.mute != m_Mute) {
@@ -758,17 +767,21 @@ namespace DevLocker.Audio
 
 		protected virtual void Update()
 		{
-			if (m_ShouldPlayRepeating && m_ConductorCoroutine == null && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource && m_AudioSource.resource) {
-				if (IsPlaying != m_LastIsPlaying) {
-					if (!IsPlaying) {
-						m_NextPlayTime = Time.time + UnityEngine.Random.Range(m_RepeatIntervalRange.MinSeconds, m_RepeatIntervalRange.MaxSeconds);
+			if (m_ShouldPlayRepeating && m_ConductorCoroutine == null && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource) {
+
+				if (m_AudioSource.isPlaying != m_LastIsPlayingForRepeatInterval) {
+					if (!m_AudioSource.isPlaying) {
+						m_NextPlayTime = Time.time + m_RepeatIntervalRange.NextValue();
 					}
-					m_LastIsPlaying = IsPlaying;
+					m_LastIsPlayingForRepeatInterval = m_AudioSource.isPlaying;
 				}
 
-				if (!IsPlaying && Time.time >= m_NextPlayTime) {
+				if (!m_AudioSource.isPlaying && Time.time >= m_NextPlayTime) {
 					Play();
 				}
+
+			} else if (!m_ShouldPlayRepeating) {
+				m_LastIsPlayingForRepeatInterval = false;
 			}
 		}
 
