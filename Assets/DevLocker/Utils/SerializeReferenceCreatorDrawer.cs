@@ -10,21 +10,44 @@ using UnityEngine;
 
 namespace DevLocker.Utils
 {
+	/// <summary>
+	/// Use this attribute with [SerializeReference] to have a "Create" button next to such fields.
+	/// By default [SerializeReference] fields display empty data in the inspector - there is no UI to create data instance.
+	/// Pressing the "Create" button will ask you to select the type to be instantiated - any class that inherits or implements the target field type.
+	///
+	/// If you want to customize the drawer or have this behaviour everywhere, not just specified field (per type, not per field)
+	/// have an property drawer editor that inherits <see cref="SerializeReferenceCreatorDrawer"/>
+	///
+	/// ===== Example =====
+	/// [SerializeReference]
+	/// [SerializeReferenceDrawer]
+	/// public MyClass SomeField;
+	///
+	/// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	/// IMPORTANT: if you use [SerializeReference] with lists and you want to avoid duplicated references to the same instance,
+	///			   use the <see cref="SerializeReferenceValidation.ClearDuplicateReferences(UnityEngine.Object)"/> from this file!
+	///	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	///
+	/// </summary>
+	public class SerializeReferenceDrawerAttribute : PropertyAttribute
+	{
+	}
+
+
 #if UNITY_EDITOR
 	/// <summary>
 	/// Use this class with [SerializeReference] attribute to have a "Create" button next to such fields.
 	/// By default [SerializeReference] fields display empty data in the inspector - there is no UI to create data instance.
 	/// Pressing the "Create" button will ask you to select the type to be instantiated - any class that inherits or implements the target field type.
 	///
-	/// Create custom drawer of your class that inherits from this one by specifying the target class type itself as <typeparamref name="T"/>.
-	/// It works properly if [SerializeReference] is not present.
+	/// If you want to customize the drawer, have your property drawer inherit this one and override one of the virtual methods,
+	/// for example <see cref="GetPropertyHeight_Custom(SerializedProperty, GUIContent)"/> and <see cref="OnGUI_Custom(Rect, SerializedProperty, GUIContent, bool)"/>
 	///
-	/// If you want to have custom drawing of the data, override the <see cref="GetPropertyHeight_Custom(SerializedProperty, GUIContent)"/> and
-	/// <see cref="OnGUI_Custom(Rect, SerializedProperty, GUIContent, bool)"/>.
+	/// If [SerializeReference] is not present default drawer is used.
 	///
-	/// Example:
+	/// ===== Example =====
 	/// [CustomPropertyDrawer(typeof(MyClass))]
-	/// public class MyClassDrawer : SerializeReferenceCreatorDrawer<MyClass>
+	/// public class MyClassDrawer : SerializeReferenceCreatorDrawer
 	/// {
 	/// }
 	///
@@ -35,11 +58,15 @@ namespace DevLocker.Utils
 	///
 	/// </summary>
 	/// <typeparam name="T">Class type to be drawn.</typeparam>
-	public class SerializeReferenceCreatorDrawer<T> : PropertyDrawer
+	[CustomPropertyDrawer(typeof(SerializeReferenceDrawerAttribute))]
+	public class SerializeReferenceCreatorDrawer : PropertyDrawer
 	{
-		protected const float s_ClearReferenceButtonWidth = 60f;
+		protected const float s_ClearReferenceButtonWidth = 20f;
 
-		protected GUIStyle m_TypeLabelStyle;
+		protected static GUIStyle s_TypeLabelStyle;
+		protected static GUIStyle s_BarButtonStyle;
+		protected static GUIContent s_CreateContent;
+		protected static GUIContent s_ClearContent;
 
 		private double m_TypeLabelClickTime;
 
@@ -54,10 +81,17 @@ namespace DevLocker.Utils
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			if (m_TypeLabelStyle == null) {
-				m_TypeLabelStyle = new GUIStyle(EditorStyles.miniBoldLabel);
-				m_TypeLabelStyle.wordWrap = false;
-				m_TypeLabelStyle.alignment = TextAnchor.MiddleRight;
+			if (s_TypeLabelStyle == null) {
+				s_TypeLabelStyle = new GUIStyle(EditorStyles.miniBoldLabel);
+				s_TypeLabelStyle.wordWrap = false;
+				s_TypeLabelStyle.alignment = TextAnchor.MiddleRight;
+
+				s_BarButtonStyle = new GUIStyle(GUI.skin.button);
+				s_BarButtonStyle.padding = new RectOffset(2, 2, 2, 2);
+				s_BarButtonStyle.fontStyle = FontStyle.Bold;
+
+				s_CreateContent = new GUIContent(EditorGUIUtility.IconContent("CreateAddNew").image, "Create instance from list of available types");
+				s_ClearContent = new GUIContent("X", "Remove instance"); //EditorGUIUtility.IconContent("CrossIcon");
 			}
 
 			// This property doesn't have the [SerializeReference] attribute.
@@ -80,7 +114,7 @@ namespace DevLocker.Utils
 
 				EditorGUI.EndProperty();
 
-				if (QuickButton(buttonRect, Color.green, "Create")) {
+				if (QuickButton(buttonRect, Color.green, s_CreateContent)) {
 
 					//List<Type> availableTypes = AppDomain.CurrentDomain.GetAssemblies()
 					//	.SelectMany(assembly => assembly.GetTypes())
@@ -90,7 +124,19 @@ namespace DevLocker.Utils
 					//	.Where(type => type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, null) != null)
 					//	.ToList()
 					//	;
-					var availableTypes = TypeCache.GetTypesDerivedFrom<T>().ToList();
+
+					string[] fieldTypeNameParts = property.managedReferenceFieldTypename.Split(' ');
+					string assemblyShortName = fieldTypeNameParts[0] + ",";
+					string typeName = fieldTypeNameParts[1];
+
+					// Assembly.FullName returns the full assembly name in this format:
+					//		"DevLocker.Audio, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+					// but Unity managedReferenceFieldTypename provides the simple assembly name and type in this format (notice the space):
+					//		"DevLocker.Audio DevLocker.Audio.AudioPlayerAsset/AudioConductor"
+					var assembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.FullName.StartsWith(assemblyShortName));
+					Type fieldType = assembly.GetType(typeName, throwOnError: true);
+
+					var availableTypes = TypeCache.GetTypesDerivedFrom(fieldType).ToList();
 
 
 					availableTypes.Sort((a, b) => a.Name.CompareTo(b.Name));
@@ -154,11 +200,11 @@ namespace DevLocker.Utils
 			clearButtonRect.width = s_ClearReferenceButtonWidth;
 
 			var typeLabelRect = barRect;
-			typeLabelRect.width -= s_ClearReferenceButtonWidth;
+			typeLabelRect.width -= s_ClearReferenceButtonWidth + 2 /* padding */;
 
 			DrawManagedTypeLabel(typeLabelRect, property, Color.white * 0.8f);
 
-			DrawClearButton(clearButtonRect, property, Color.red, "Clear");
+			DrawClearButton(clearButtonRect, property, Color.red, s_ClearContent);
 		}
 
 		/// <summary>
@@ -181,7 +227,7 @@ namespace DevLocker.Utils
 		protected void DrawManagedTypeLabel(Rect typeLabelRect, SerializedProperty property, Color color, GUIStyle style = null)
 		{
 			if (style == null) {
-				style = m_TypeLabelStyle;
+				style = s_TypeLabelStyle;
 			}
 
 			// If missing, start index is 0, so it's ok.
@@ -222,6 +268,10 @@ namespace DevLocker.Utils
 
 					m_TypeLabelClickTime = EditorApplication.timeSinceStartup;
 					GUIUtility.ExitGUI();
+
+				} else {
+					EditorGUIUtility.systemCopyBuffer = typeName.text;
+					EditorWindow.focusedWindow?.ShowNotification(new GUIContent("Copied!"));
 				}
 			}
 			EditorGUIUtility.AddCursorRect(typeLabelRect, MouseCursor.Link);
@@ -233,22 +283,22 @@ namespace DevLocker.Utils
 		/// Draw the "Clear" button the way you want.
 		/// NOTE: if button is pressed, <see cref="GUIUtility.ExitGUI"/> is called, preventing the code from resuming with empty reference.
 		/// </summary>
-		protected void DrawClearButton(Rect buttonRect, SerializedProperty property, Color color, string text)
+		protected void DrawClearButton(Rect buttonRect, SerializedProperty property, Color color, GUIContent content)
 		{
-			if (QuickButton(buttonRect, color, text)) {
+			if (QuickButton(buttonRect, color, content)) {
 				property.managedReferenceValue = null;
 				property.serializedObject.ApplyModifiedProperties();
 				GUIUtility.ExitGUI();
 			}
 		}
 
-		private bool QuickButton(Rect buttonRect, Color color, string text)
+		private bool QuickButton(Rect buttonRect, Color color, GUIContent content)
 		{
 			var prevBackground = GUI.backgroundColor;
 			bool clicked = false;
 
 			GUI.backgroundColor = color;
-			if (GUI.Button(buttonRect, text)) {
+			if (GUI.Button(buttonRect, content, s_BarButtonStyle)) {
 				clicked = true;
 			}
 
@@ -257,6 +307,7 @@ namespace DevLocker.Utils
 			return clicked;
 		}
 	}
+
 #endif
 
 	/// <summary>
