@@ -3,7 +3,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace DevLocker.Audio
 {
@@ -68,16 +67,10 @@ namespace DevLocker.Audio
 		public object ConductorsFilterContext;
 
 		/// <summary>
-		/// Used by conductors to persist data per player between usages. For example: don't repeat last clip.
+		/// Used by conductors to persist state per player between usages. For example: don't repeat last clip.
 		/// Try to use unique key names.
 		/// </summary>
-		public Dictionary<string, object> ConductorsStorage = new Dictionary<string, object>();
-
-		/// <summary>
-		/// Used by conductors to persist data between usages globally. For example: don't repeat last clip.
-		/// Try to use unique key names.
-		/// </summary>
-		public static Dictionary<string, object> GlobalConductorsStorage = new Dictionary<string, object>();
+		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
 
 		public AudioMixerGroup Output {
 			get => m_Output;
@@ -152,6 +145,8 @@ namespace DevLocker.Audio
 
 		public float SpatialBlend => AudioSource?.spatialBlend ?? 0f;
 
+		public float LastPlayTime { get; private set; }
+
 		public AudioSource AudioSource {
 			get {
 				if (m_AudioSource == null) {
@@ -217,10 +212,14 @@ namespace DevLocker.Audio
 		private bool m_LastIsPlaying;
 		private bool m_ShouldPlayRepeating;
 
+		public static AudioSourcePlayer Quick2DPlayer;
+		public static AudioSourcePlayer Quick3DPlayer;
+
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		private static void ClearStaticsCache()
 		{
-			GlobalConductorsStorage = new Dictionary<string, object>();
+			Quick2DPlayer = null;
+			Quick3DPlayer = null;
 		}
 
 		protected virtual void OnEnable()
@@ -308,6 +307,8 @@ namespace DevLocker.Audio
 				} else {
 					AudioSource.PlayDelayed(delay);
 				}
+
+				LastPlayTime = Time.time;
 				PlayStarted?.Invoke(this);
 			}
 		}
@@ -329,46 +330,11 @@ namespace DevLocker.Audio
 			StopVolumeCrt();
 			StopConductorCrt();
 
-			AudioSource.PlayOnGamepad(playerIndex);	// This is not available for every platform (e.g. PC doesn't have it).
+			AudioSource.PlayOnGamepad(playerIndex); // This is not available for every platform (e.g. PC doesn't have it).
 
+			LastPlayTime = Time.time;
 			PlayStarted?.Invoke(this);
 #endif
-		}
-
-		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
-		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
-		/// </summary>
-		public virtual void PlayDirectClip(AudioClip clip, bool playAsOneShot)
-		{
-			if (AudioSource == null)
-				return;
-			if (clip == null)
-				throw new ArgumentNullException();
-
-			// This bypasses the AudioResource property.
-			AudioSource.clip = clip;
-			if (playAsOneShot) {
-				AudioSource.PlayOneShot(clip);
-			} else {
-				AudioSource.Play();
-			}
-		}
-
-		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
-		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
-		/// </summary>
-		public virtual void PlayDirectResource(AudioResource resource)
-		{
-			if (AudioSource == null)
-				return;
-			if (resource == null)
-				throw new ArgumentNullException();
-
-			// This bypasses the AudioResource property.
-			AudioSource.resource = resource;
-			AudioSource.Play();
 		}
 
 		[ContextMenu("Stop")]
@@ -491,33 +457,240 @@ namespace DevLocker.Audio
 			}
 		}
 
-		public T GetConductorsStorageValue<T>(string keyName, T defaultValue)
+		#region Quick Play Static Helpers
+
+		/// <summary>
+		/// Play clip quickly as 2D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioClip clip, float volume = 1.0f)
 		{
-			if (ConductorsStorage.TryGetValue(keyName, out object objValue) && objValue is T value) {
-				return value;
-			} else {
-				return defaultValue;
+			if (Quick2DPlayer == null) {
+				Quick2DPlayer = new GameObject("2D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick2DPlayer.PlayOnEnable = false;
+				Quick2DPlayer.AudioSource.spatialBlend = 0;
 			}
+
+			Quick2DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(Quick2DPlayer); // So it shows up on the audio monitor.
 		}
 
-		public void SetConductorsStorageValue(string keyName, object value)
+		/// <summary>
+		/// Play clip quickly as 2D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioPlayerAsset asset)
 		{
-			ConductorsStorage[keyName] = value;
-		}
-
-		public static T GetGlobalConductorsStorageValue<T>(string keyName, T defaultValue)
-		{
-			if (GlobalConductorsStorage.TryGetValue(keyName, out object objValue) && objValue is T value) {
-				return value;
-			} else {
-				return defaultValue;
+			if (Quick2DPlayer == null) {
+				Quick2DPlayer = new GameObject("2D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick2DPlayer.PlayOnEnable = false;
+				Quick2DPlayer.AudioSource.spatialBlend = 0;
 			}
+
+			Quick2DPlayer.AudioAsset = asset;
+			Quick2DPlayer.Play();
 		}
 
-		public static void SetGlobalConductorsStorageValue(string keyName, object value)
+		/// <summary>
+		/// Play clip quickly as 2D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioClip clip, GameObject gameObject, float volume = 1.0f)
 		{
-			GlobalConductorsStorage[keyName] = value;
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 0;
+			}
+
+			player.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(player);    // So it shows up on the audio monitor.
 		}
+
+		/// <summary>
+		/// Play asset quickly as 2D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioPlayerAsset asset, GameObject gameObject)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 0;
+			}
+
+			player.AudioAsset = asset;
+			player.Play();
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioClip clip, Vector3 position, float volume = 1.0f)
+		{
+			if (Quick3DPlayer == null) {
+				Quick3DPlayer = new GameObject("3D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick3DPlayer.PlayOnEnable = false;
+				Quick3DPlayer.AudioSource.spatialBlend = 1;
+			}
+
+			Quick3DPlayer.transform.position = position;
+			Quick3DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(Quick3DPlayer); // So it shows up on the audio monitor.
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioPlayerAsset asset, Vector3 position)
+		{
+			if (Quick3DPlayer == null) {
+				Quick3DPlayer = new GameObject("3D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick3DPlayer.PlayOnEnable = false;
+				Quick3DPlayer.AudioSource.spatialBlend = 1;
+			}
+
+			Quick3DPlayer.transform.position = position;
+			Quick3DPlayer.AudioAsset = asset;
+			Quick3DPlayer.Play();
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioClip clip, Vector3 position, GameObject gameObject, float volume = 1.0f)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 1;
+			}
+
+			player.transform.position = position;
+			player.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(player);    // So it shows up on the audio monitor.
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioPlayerAsset asset, Vector3 position, GameObject gameObject)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 1;
+			}
+
+			player.transform.position = position;
+			player.AudioAsset = asset;
+			player.Play();
+		}
+
+		#endregion
+
+		#region Direct Play for Conductors
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectClip(AudioClip clip, bool playAsOneShot, float volume = 1.0f)
+		{
+			if (AudioSource == null)
+				return;
+			if (clip == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.clip = clip;
+			if (playAsOneShot) {
+				AudioSource.PlayOneShot(clip, volume * m_Volume);
+			} else {
+				AudioSource.volume = volume * m_Volume;
+				AudioSource.Play();
+			}
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectClip(AudioPlayerAsset.ClipWithVolume clipPair, bool playAsOneShot)
+		{
+			if (AudioSource == null)
+				return;
+			if (clipPair.Clip == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.clip = clipPair.Clip;
+			if (playAsOneShot) {
+				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
+			} else {
+				AudioSource.volume = clipPair.Volume * m_Volume;
+				AudioSource.Play();
+			}
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectResource(AudioResource resource)
+		{
+			if (AudioSource == null)
+				return;
+			if (resource == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.resource = resource;
+			AudioSource.Play();
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectResource(AudioPlayerAsset.ResourceWithVolume resourcePair)
+		{
+			if (AudioSource == null)
+				return;
+			if (resourcePair.Resource == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.resource = resourcePair.Resource;
+			AudioSource.volume = resourcePair.Volume * m_Volume;
+			AudioSource.Play();
+
+			LastPlayTime = Time.time;
+		}
+
+		#endregion
 
 		private IEnumerator StartAudioAsset(AudioPlayerAsset audioAsset, float delay)
 		{

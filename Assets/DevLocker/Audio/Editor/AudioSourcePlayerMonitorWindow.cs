@@ -124,7 +124,7 @@ namespace DevLocker.Audio.Editor
 				PlayOnEnable = player.PlayOnEnable,
 
 				RepeatPattern = player.RepeatPattern,
-				Volume = player.Volume,
+				Volume = player.AudioSource?.volume ?? player.Volume,	// Conductors may change audio source volume directly.
 				Pitch = player.Pitch,
 				SpatialBlend = player.SpatialBlend,
 

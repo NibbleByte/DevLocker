@@ -6,6 +6,26 @@ using UnityEngine;
 
 namespace DevLocker.Audio.Conductors
 {
+	#region Timing Predicates
+
+	[Serializable]
+	public class CooldownFilter : AudioPlayerAsset.AudioPredicate
+	{
+		[Tooltip("Minimum time interval (in seconds) from last play that we can play again.")]
+		public float CooldownSeconds = 0.1f;
+
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
+		{
+			if (Time.time - player.LastPlayTime > CooldownSeconds) {
+				return true;
+			}
+
+			return false;
+		}
+	}
+
+	#endregion
+
 	#region Comparing Predicades
 
 	public enum ComparisonType
@@ -19,7 +39,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class IntComparison : AudioPlayerAsset.AudioPredicate
+	public class CompareInt : AudioPlayerAsset.AudioPredicate
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -27,7 +47,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("The right-hand side value")]
 		public int Value;
 
-		public override bool IsAllowed(object context)
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -54,7 +74,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class FloatComparison : AudioPlayerAsset.AudioPredicate
+	public class CompareFloat : AudioPlayerAsset.AudioPredicate
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -62,7 +82,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("The right-hand side value")]
 		public float Value;
 
-		public override bool IsAllowed(object context)
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -89,14 +109,14 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class BoolComparison : AudioPlayerAsset.AudioPredicate
+	public class CompareBool : AudioPlayerAsset.AudioPredicate
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
 		[Tooltip("Check if the boolean context value equals this one")]
 		public bool Value;
 
-		public override bool IsAllowed(object context)
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -114,7 +134,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class StringComparison : AudioPlayerAsset.AudioPredicate
+	public class CompareString : AudioPlayerAsset.AudioPredicate
 	{
 		public enum StringCompareType
 		{
@@ -135,7 +155,7 @@ namespace DevLocker.Audio.Conductors
 		public bool NegateResult;
 
 
-		public override bool IsAllowed(object context)
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -166,7 +186,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class AssetReferencesComparison : AudioPlayerAsset.AudioPredicate
+	public class CompareAssetReferences : AudioPlayerAsset.AudioPredicate
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -176,7 +196,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("Allow only if result is false, i.e. negative comparison.")]
 		public bool NegateResult;
 
-		public override bool IsAllowed(object context)
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -204,7 +224,7 @@ namespace DevLocker.Audio.Conductors
 		[SerializeReference]
 		public List<AudioPlayerAsset.AudioPredicate> OrFilters;
 
-		public override bool IsAllowed(object context) => OrFilters.Any(filter => filter.IsAllowed(context));
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset) => OrFilters.Any(filter => filter.IsAllowed(context, player, asset));
 	}
 
 	[Serializable]
@@ -213,7 +233,7 @@ namespace DevLocker.Audio.Conductors
 		[SerializeReference]
 		public List<AudioPlayerAsset.AudioPredicate> AndFilters;
 
-		public override bool IsAllowed(object context) => AndFilters.All(filter => filter.IsAllowed(context));
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset) => AndFilters.All(filter => filter.IsAllowed(context, player, asset));
 	}
 
 	[Serializable]
@@ -222,7 +242,7 @@ namespace DevLocker.Audio.Conductors
 		[SerializeReference]
 		public AudioPlayerAsset.AudioPredicate NotFilter;
 
-		public override bool IsAllowed(object context) => !NotFilter.IsAllowed(context);
+		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset) => !NotFilter.IsAllowed(context, player, asset);
 	}
 
 	#endregion
