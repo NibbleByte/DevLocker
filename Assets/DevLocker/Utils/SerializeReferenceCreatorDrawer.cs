@@ -137,7 +137,7 @@ namespace DevLocker.Utils
 					Type fieldType = assembly.GetType(typeName, throwOnError: true);
 
 					var availableTypes = TypeCache.GetTypesDerivedFrom(fieldType).ToList();
-
+					availableTypes.Add(fieldType);
 
 					availableTypes.Sort((a, b) => a.Name.CompareTo(b.Name));
 
